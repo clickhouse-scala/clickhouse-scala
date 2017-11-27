@@ -29,7 +29,7 @@ public class ArrayInt32 {
     private Statement stmt;
     private Client scalaClient;
     private ClickhouseProperties scalaClickhouseProperties;
-    private Decoder<TestArray> scalaDecoder;
+    private Decoder<Foo> scalaDecoder;
 
     @Before
     public void setUp() throws Exception {
@@ -40,12 +40,12 @@ public class ArrayInt32 {
         conn = DriverManager.getConnection(DB_URL + http, USER, PASS);
         stmt = conn.createStatement();
 
-        createArrayIntTable();
-        populateArrayIntTable();
+        createArrayInt32Table();
+        populateArrayInt32Table();
 
         scalaClient = new Client(DriverProperties.DEFAULT_INSERT_BLOCK_SIZE(), new Connection("localhost", tcp, "q", "default", "default", ""));
         scalaClickhouseProperties = new ClickhouseProperties();
-        scalaDecoder = new TestArrayDecoder();
+        scalaDecoder = new FooDecoder();
     }
 
     @Test
@@ -54,7 +54,7 @@ public class ArrayInt32 {
         int times = 100;
         int[][] javaRes = new int[rowsNumber][];
         int[][] scalaRes = new int[rowsNumber][];
-        String sql = "SELECT * FROM test_array limit " + rowsNumber;
+        String sql = "SELECT * FROM test_array_int32 limit " + rowsNumber;
 
         for (int i = 0; i < times; i++) {
             long javaTime = 0;
@@ -72,7 +72,7 @@ public class ArrayInt32 {
             System.out.println("jdbc = " + javaTime);
 
             now = System.currentTimeMillis();
-            scala.collection.Iterator<TestArray> it = scalaClient.execute(sql, scalaClickhouseProperties, scalaDecoder);
+            scala.collection.Iterator<Foo> it = scalaClient.execute(sql, scalaClickhouseProperties, scalaDecoder);
             j = 0;
             while (it.hasNext()) {
                 scalaRes[j] = it.next().x;
@@ -89,15 +89,15 @@ public class ArrayInt32 {
         conn.close();
     }
 
-    class TestArray {
+    class Foo {
         private int[] x;
 
-        TestArray(int[] x) {
+        Foo(int[] x) {
             this.x = x;
         }
     }
 
-    class TestArrayDecoder implements Decoder<TestArray> {
+    class FooDecoder implements Decoder<Foo> {
 
         @Override
         public boolean validate(String[] names, String[] types) {
@@ -107,11 +107,11 @@ public class ArrayInt32 {
         }
 
         @Override
-        public Iterator<TestArray> transpose(int numberOfItems, Column[] columns) {
+        public Iterator<Foo> transpose(int numberOfItems, Column[] columns) {
             int[][] xs = new int[numberOfItems][];
             System.arraycopy(columns[0].data(), 0, xs, 0, numberOfItems);
 
-            return new Iterator<TestArray>() {
+            return new Iterator<Foo>() {
                 int i = 0;
 
                 @Override
@@ -120,21 +120,21 @@ public class ArrayInt32 {
                 }
 
                 @Override
-                public TestArray next() {
-                    return new TestArray(xs[i++]);
+                public Foo next() {
+                    return new Foo(xs[i++]);
                 }
             };
         }
     }
 
-    private void createArrayIntTable() throws Exception {
-        String forCreate = "create table test_array(x Array(Int32)) engine = Memory;";
+    private void createArrayInt32Table() throws Exception {
+        String forCreate = "create table test_array_int32(x Array(Int32)) engine = Memory;";
         stmt.executeUpdate(forCreate);
     }
 
-    private void populateArrayIntTable() throws Exception {
+    private void populateArrayInt32Table() throws Exception {
         conn.setAutoCommit(false);
-        String forInsert = "insert into test_array(x) values (?)";
+        String forInsert = "insert into test_array_int32(x) values (?)";
         PreparedStatement ps = conn.prepareStatement(forInsert);
         for (int i = 0; i < 1_000_000; i++) {
             Integer[] ints = {1, 2, 3};
