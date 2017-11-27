@@ -1,16 +1,17 @@
-package chdriver.blocks
+package chdriver.core.blocks
 
 import java.io.{DataInputStream, DataOutputStream}
 
-import chdriver.columns.Column
-import chdriver.{Block, BlockInfo, ClickhouseVersionSpecific, Decoder}
+import chdriver.core.ClickhouseVersionSpecific.DBMS_MIN_REVISION_WITH_BLOCK_INFO
+import chdriver.core.columns.Column
+import chdriver.core.{Block, BlockInfo, ClickhouseVersionSpecific, Decoder}
 
 object Native {
   implicit class BlockOutputStream(val out: DataOutputStream) extends AnyVal {
-    import chdriver.Protocol.DataOutputStreamOps
+    import chdriver.core.Protocol.DataOutputStreamOps
 
     def writeBlock(block: Block[_], serverRevision: Int): Unit = {
-      if (serverRevision >= chdriver.ClickhouseVersionSpecific.DBMS_MIN_REVISION_WITH_BLOCK_INFO) {
+      if (serverRevision >= DBMS_MIN_REVISION_WITH_BLOCK_INFO) {
         // todo for_insert write block info
         out.writeAsUInt128(1)
         out.writeUInt8(0)
@@ -26,7 +27,7 @@ object Native {
   }
 
   implicit class BlockInputStream(val in: DataInputStream) extends AnyVal {
-    import chdriver.Protocol.DataInputStreamOps
+    import chdriver.core.Protocol.DataInputStreamOps
 
     def readBlock[T](serverRevision: Int)(implicit decoder: Decoder[T]): Block[T] = {
       val info = new BlockInfo
@@ -50,7 +51,9 @@ object Native {
         types(i) = columnType
 
         if (isLastColumn && !decoder.validate(names, types))
-          throw new Exception(s"Incompatible runtime data, runtime names=[${names.mkString(",")}], types=[${types.mkString(",")}]")
+          throw new Exception(
+            s"Incompatible runtime data, runtime names=[${names.mkString(",")}], types=[${types.mkString(",")}]"
+          )
 
         if (numberOfRows > 0) {
           val column = Column.from(in, numberOfRows, columnType)

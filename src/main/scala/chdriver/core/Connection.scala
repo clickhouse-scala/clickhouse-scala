@@ -1,4 +1,4 @@
-package chdriver
+package chdriver.core
 
 import java.io.{BufferedInputStream, BufferedOutputStream, DataInputStream, DataOutputStream}
 import java.net.Socket
@@ -14,7 +14,7 @@ class Connection(val host: String = "localhost",
                  val password: String = "",
 ) {
   import Protocol._
-  import chdriver.blocks.Native.{BlockOutputStream, BlockInputStream}
+  import chdriver.core.blocks.Native.{BlockOutputStream, BlockInputStream}
 
   var serverRevision: Int = _
 

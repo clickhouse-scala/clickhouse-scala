@@ -1,9 +1,9 @@
-package chdriver.columns
+package chdriver.core.columns
 
 import java.io.DataInputStream
 import java.util.ArrayDeque
 
-import chdriver.DriverException
+import chdriver.core.DriverException
 
 class ArrayColumn(_data: Array[Any]) extends Column {
   override type T = Any
@@ -11,7 +11,7 @@ class ArrayColumn(_data: Array[Any]) extends Column {
 }
 
 object ArrayColumn {
-  import chdriver.Protocol.DataInputStreamOps
+  import chdriver.core.Protocol.DataInputStreamOps
 
   final val prefix = "Array("
 

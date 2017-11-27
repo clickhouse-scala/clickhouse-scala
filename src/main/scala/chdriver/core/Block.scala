@@ -1,8 +1,8 @@
-package chdriver
+package chdriver.core
 
 import java.io.{DataInputStream, DataOutputStream}
 
-import chdriver.columns.Column
+import chdriver.core.columns.Column
 
 class BlockInfo { // todo C++ what info is encoded in this BlockInfo?
   var isOverflows: Boolean = false

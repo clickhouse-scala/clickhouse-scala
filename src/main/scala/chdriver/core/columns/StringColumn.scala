@@ -1,4 +1,4 @@
-package chdriver.columns
+package chdriver.core.columns
 
 import java.io.DataInputStream
 
@@ -8,7 +8,7 @@ class StringColumn(_data: Array[String]) extends Column {
 }
 
 object StringColumn {
-  import chdriver.Protocol.DataInputStreamOps
+  import chdriver.core.Protocol.DataInputStreamOps
 
   def readAllFrom(in: DataInputStream, itemsNumber: Int): StringColumn = {
     val data = new Array[String](itemsNumber)

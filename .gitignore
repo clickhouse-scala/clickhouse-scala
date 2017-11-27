@@ -1,4 +1,4 @@
-src/main/scala/chdriver/Main.scala
+src/main/scala/chdriver/core/Main.scala
 
 # Created by https://www.gitignore.io/api/sbt,macos,scala,intellij
 

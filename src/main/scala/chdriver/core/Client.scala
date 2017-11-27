@@ -1,4 +1,4 @@
-package chdriver
+package chdriver.core
 
 class Client(val insertBlockSize: Int = DriverProperties.DEFAULT_INSERT_BLOCK_SIZE,
              val connection: Connection = new Connection()) {

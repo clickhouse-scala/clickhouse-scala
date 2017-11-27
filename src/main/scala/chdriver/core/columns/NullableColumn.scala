@@ -1,4 +1,4 @@
-package chdriver.columns
+package chdriver.core.columns
 
 import java.io.DataInputStream
 

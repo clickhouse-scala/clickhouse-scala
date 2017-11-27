@@ -1,9 +1,9 @@
 package examples;
 
-import chdriver.Connection;
-import chdriver.Decoder;
-import chdriver.DriverProperties;
-import chdriver.columns.Column;
+import chdriver.core.Connection;
+import chdriver.core.Decoder;
+import chdriver.core.DriverProperties;
+import chdriver.core.columns.Column;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -12,8 +12,8 @@ import org.testcontainers.containers.GenericContainer;
 import java.sql.*;
 import java.util.Arrays;
 
-import chdriver.Client;
-import chdriver.ClickhouseProperties;
+import chdriver.core.Client;
+import chdriver.core.ClickhouseProperties;
 import scala.collection.Iterator;
 
 public class ArrayInt32 {

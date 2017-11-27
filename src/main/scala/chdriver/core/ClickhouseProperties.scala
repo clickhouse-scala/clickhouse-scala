@@ -1,4 +1,4 @@
-package chdriver
+package chdriver.core
 
 import java.io.DataOutputStream
 

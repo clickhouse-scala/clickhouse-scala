@@ -1,4 +1,4 @@
-package chdriver
+package chdriver.core
 
 object ClickhouseVersionSpecific {
   final val DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES = 50264

@@ -1,4 +1,4 @@
-package chdriver.columns
+package chdriver.core.columns
 
 import java.io.DataInputStream
 
@@ -9,7 +9,7 @@ class Int32Column(_data: Array[Int]) extends Column {
 
 object Int32Column {
   def readAllFrom(in: DataInputStream, itemsNumber: Int): Int32Column = {
-    import chdriver.Protocol.DataInputStreamOps
+    import chdriver.core.Protocol.DataInputStreamOps
 
     val data = new Array[Byte](itemsNumber * 4)
     in.readFully(data)
