@@ -9,8 +9,6 @@ class Int8Column(_data: Array[Byte]) extends Column {
 
 object Int8Column {
   def readAllFrom(in: DataInputStream, itemsNumber: Int): Int8Column = {
-    import chdriver.core.Protocol.DataInputStreamOps
-
     val result = new Array[Byte](itemsNumber)
     in.readFully(result)
     new Int8Column(result)

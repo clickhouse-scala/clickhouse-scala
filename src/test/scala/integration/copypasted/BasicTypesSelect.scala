@@ -124,8 +124,6 @@ class BasicTypesSelect {
       }
       scalaTime += System.currentTimeMillis - now
 
-      println(javaRes.take(100).mkString(" "))
-
       assert(javaRes.sameElements(scalaRes))
     }
 
