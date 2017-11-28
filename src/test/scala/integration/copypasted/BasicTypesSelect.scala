@@ -59,6 +59,152 @@ class BasicTypesSelect {
   import BasicTypesSelect._
 
   @Test
+  def testSelectInt8(): Unit = {
+    case class Foo(x: Byte)
+
+    implicit val FooDecoder = new Decoder[Foo] {
+      override def validate(names: Array[String], types: Array[String]): Boolean = {
+        names.sameElements(Array("x")) &&
+          types.sameElements(Array("Int8"))
+      }
+
+      override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {
+        val xs = new Array[Byte](numberOfItems)
+        System.arraycopy(columns(0).data, 0, xs, 0, numberOfItems)
+
+        new Iterator[Foo] {
+          var i = 0
+          override def hasNext = i < numberOfItems
+
+          override def next() = {
+            val res = Foo(xs(i))
+            i += 1
+            res
+          }
+        }
+      }
+    }
+
+    val forCreate = "create table test_int8(x Int8) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_int8(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    for (_ <- 1 to ROWS_NUMBER) {
+      ps.setByte(1, Random.nextInt().toByte)
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[Byte](ROWS_NUMBER)
+    val scalaRes = new Array[Byte](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_int8 limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getByte("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      println(javaRes.take(100).mkString(" "))
+
+      assert(javaRes.sameElements(scalaRes))
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
+
+  @Test
+  def testSelectInt16(): Unit = {
+    case class Foo(x: Short)
+
+    implicit val FooDecoder = new Decoder[Foo] {
+      override def validate(names: Array[String], types: Array[String]): Boolean = {
+        names.sameElements(Array("x")) &&
+          types.sameElements(Array("Int16"))
+      }
+
+      override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {
+        val xs = new Array[Short](numberOfItems)
+        System.arraycopy(columns(0).data, 0, xs, 0, numberOfItems)
+
+        new Iterator[Foo] {
+          var i = 0
+          override def hasNext = i < numberOfItems
+
+          override def next() = {
+            val res = Foo(xs(i))
+            i += 1
+            res
+          }
+        }
+      }
+    }
+
+    val forCreate = "create table test_int16(x Int16) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_int16(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    for (_ <- 1 to ROWS_NUMBER) {
+      ps.setShort(1, Random.nextInt().toShort)
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[Short](ROWS_NUMBER)
+    val scalaRes = new Array[Short](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_int16 limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getShort("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      assert(javaRes.sameElements(scalaRes))
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
+  
+  @Test
   def testSelectInt32(): Unit = {
     case class Foo(x: Int)
 
@@ -94,14 +240,14 @@ class BasicTypesSelect {
       ps.setInt(1, Random.nextInt())
       ps.addBatch()
     }
-    ps.executeBatch
+    ps.executeBatch()
     conn.commit()
 
     val javaRes = new Array[Int](ROWS_NUMBER)
     val scalaRes = new Array[Int](ROWS_NUMBER)
     var javaTime = 0L
     var scalaTime = 0L
-    val sql = "SELECT * FROM test_int32 limit " + ROWS_NUMBER
+    val sql = "select * from test_int32 limit " + ROWS_NUMBER
 
     for (_ <- 1 to ITERATIONS) {
       var now = System.currentTimeMillis
@@ -110,6 +256,78 @@ class BasicTypesSelect {
       val rs = stmt.executeQuery(sql)
       while (rs.next) {
         javaRes(j) = rs.getInt("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      assert(javaRes.sameElements(scalaRes))
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
+
+  @Test
+  def testSelectInt64(): Unit = {
+    case class Foo(x: Long)
+
+    implicit val FooDecoder = new Decoder[Foo] {
+      override def validate(names: Array[String], types: Array[String]): Boolean = {
+        names.sameElements(Array("x")) &&
+          types.sameElements(Array("Int64"))
+      }
+
+      override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {
+        val xs = new Array[Long](numberOfItems)
+        System.arraycopy(columns(0).data, 0, xs, 0, numberOfItems)
+
+        new Iterator[Foo] {
+          var i = 0
+          override def hasNext = i < numberOfItems
+
+          override def next() = {
+            val res = Foo(xs(i))
+            i += 1
+            res
+          }
+        }
+      }
+    }
+
+    val forCreate = "create table test_int64(x Int64) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_int64(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    for (_ <- 1 to ROWS_NUMBER) {
+      ps.setLong(1, Random.nextLong())
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[Long](ROWS_NUMBER)
+    val scalaRes = new Array[Long](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_int64 limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getLong("x")
         j += 1
       }
       rs.close()
@@ -166,14 +384,14 @@ class BasicTypesSelect {
       ps.setString(1, Random.nextString(Random.nextInt(16)))
       ps.addBatch()
     }
-    ps.executeBatch
+    ps.executeBatch()
     conn.commit()
 
     val javaRes = new Array[String](ROWS_NUMBER)
     val scalaRes = new Array[String](ROWS_NUMBER)
     var javaTime = 0L
     var scalaTime = 0L
-    val sql = "SELECT * FROM test_string limit " + ROWS_NUMBER
+    val sql = "select * from test_string limit " + ROWS_NUMBER
 
     for (_ <- 1 to ITERATIONS) {
       var now = System.currentTimeMillis

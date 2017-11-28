@@ -15,9 +15,12 @@ object Column {
   val NullableRegex = "Nullable\\(([\\(\\)0-9A-Za-z]+)\\)".r
 
   def from(in: DataInputStream, itemsNumber: Int, chtype: String): Column = chtype match {
-      case "Int32" => Int32Column.readAllFrom(in, itemsNumber)
-      case "String" => StringColumn.readAllFrom(in, itemsNumber)
-      case ArrayRegex(innerType) => ArrayColumn.readAllFrom(in, itemsNumber, innerType)
-      case NullableRegex(innerType) => NullableColumn.readAllFrom(in, itemsNumber, innerType)
-    }
+    case "Int8" => Int8Column.readAllFrom(in, itemsNumber)
+    case "Int16" => Int16Column.readAllFrom(in, itemsNumber)
+    case "Int32" => Int32Column.readAllFrom(in, itemsNumber)
+    case "Int64" => Int64Column.readAllFrom(in, itemsNumber)
+    case "String" => StringColumn.readAllFrom(in, itemsNumber)
+    case ArrayRegex(innerType) => ArrayColumn.readAllFrom(in, itemsNumber, innerType)
+    case NullableRegex(innerType) => NullableColumn.readAllFrom(in, itemsNumber, innerType)
+  }
 }

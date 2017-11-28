@@ -1,6 +1,6 @@
 package chdriver.core
 
-import java.io.{DataInputStream, DataOutputStream}
+import java.io.{DataInputStream, DataOutputStream, EOFException}
 
 object Protocol {
   implicit class DataOutputStreamOps(val out: DataOutputStream) extends AnyVal {
@@ -70,7 +70,11 @@ object Protocol {
       new String(result, "UTF-8")
     }
 
-    def readUInt8(): Int = in.read()
+    def readUInt8(): Int = {
+      val b = in.read()
+      if (0 > b) throw new EOFException
+      b
+    }
 
     def readInt32(): Int = {
       val b1 = in.readByte()
