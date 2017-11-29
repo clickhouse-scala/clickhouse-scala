@@ -11,12 +11,12 @@ import scala.collection.Iterator
 import scala.util.Random
 
 /**
-  * Good old copy-paste, to be sure that very basic selects are supported.
-  * Random data is inserted via JDBC, then both scala driver & JDBC do many selects and verify that result is the same.
-  *
-  * Since there are `ITERATION` repeats of big (rows number = `ROWS_NUMBER`) queries, this class also gives some
-  * information about performance.
-  */
+ * Good old copy-paste, to be sure that very basic selects are supported.
+ * Random data is inserted via JDBC, then both scala driver & JDBC do many selects and verify that result is the same.
+ *
+ * Since there are `ITERATION` repeats of big (rows number = `ROWS_NUMBER`) queries, this class also gives some
+ * information about performance.
+ */
 object BasicTypesSelect {
   final val DB_URL = "jdbc:clickhouse://localhost"
   final val USER = "default"
@@ -65,7 +65,7 @@ class BasicTypesSelect {
     implicit val FooDecoder = new Decoder[Foo] {
       override def validate(names: Array[String], types: Array[String]): Boolean = {
         names.sameElements(Array("x")) &&
-          types.sameElements(Array("Int8"))
+        types.sameElements(Array("Int8"))
       }
 
       override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {
@@ -137,7 +137,7 @@ class BasicTypesSelect {
     implicit val FooDecoder = new Decoder[Foo] {
       override def validate(names: Array[String], types: Array[String]): Boolean = {
         names.sameElements(Array("x")) &&
-          types.sameElements(Array("Int16"))
+        types.sameElements(Array("Int16"))
       }
 
       override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {
@@ -201,7 +201,7 @@ class BasicTypesSelect {
 
     println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
   }
-  
+
   @Test
   def testSelectInt32(): Unit = {
     case class Foo(x: Int)
@@ -209,7 +209,7 @@ class BasicTypesSelect {
     implicit val FooDecoder = new Decoder[Foo] {
       override def validate(names: Array[String], types: Array[String]): Boolean = {
         names.sameElements(Array("x")) &&
-          types.sameElements(Array("Int32"))
+        types.sameElements(Array("Int32"))
       }
 
       override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {
@@ -281,7 +281,7 @@ class BasicTypesSelect {
     implicit val FooDecoder = new Decoder[Foo] {
       override def validate(names: Array[String], types: Array[String]): Boolean = {
         names.sameElements(Array("x")) &&
-          types.sameElements(Array("Int64"))
+        types.sameElements(Array("Int64"))
       }
 
       override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {
@@ -347,13 +347,303 @@ class BasicTypesSelect {
   }
 
   @Test
+  def testSelectUInt8(): Unit = {
+    case class Foo(x: Int)
+
+    implicit val FooDecoder = new Decoder[Foo] {
+      override def validate(names: Array[String], types: Array[String]): Boolean = {
+        names.sameElements(Array("x")) &&
+        types.sameElements(Array("UInt8"))
+      }
+
+      override def transpose(numberOfItems: Int, columns: Array[Column]) = {
+        new Iterator[Foo] {
+          val xs = columns(0).data.asInstanceOf[Array[Byte]]
+          var i = 0
+
+          override def hasNext = i < numberOfItems
+
+          override def next() = {
+            val res = Foo(xs(i) & 0xFF)
+            i += 1
+            res
+          }
+        }
+      }
+    }
+
+    val forCreate = "create table test_uint8(x UInt8) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_uint8(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    for (_ <- 1 to ROWS_NUMBER) {
+      ps.setInt(1, Random.nextInt().toByte & 0xFF)
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[Int](ROWS_NUMBER)
+    val scalaRes = new Array[Int](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_uint8 limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getInt("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      assert(javaRes.sameElements(scalaRes))
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
+
+  @Test
+  def testSelectUInt16(): Unit = {
+    case class Foo(x: Int)
+
+    implicit val FooDecoder = new Decoder[Foo] {
+      override def validate(names: Array[String], types: Array[String]): Boolean = {
+        names.sameElements(Array("x")) &&
+        types.sameElements(Array("UInt16"))
+      }
+
+      override def transpose(numberOfItems: Int, columns: Array[Column]) = {
+        new Iterator[Foo] {
+          val xs = columns(0).data.asInstanceOf[Array[Short]]
+          var i = 0
+
+          override def hasNext = i < numberOfItems
+
+          override def next() = {
+            val res = Foo(xs(i) & 0xFFFF)
+            i += 1
+            res
+          }
+        }
+      }
+    }
+
+    val forCreate = "create table test_uint16(x UInt16) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_uint16(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    for (_ <- 1 to ROWS_NUMBER) {
+      ps.setInt(1, Random.nextInt().toShort & 0xFFFF)
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[Int](ROWS_NUMBER)
+    val scalaRes = new Array[Int](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_uint16 limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getInt("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      assert(javaRes.sameElements(scalaRes))
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
+
+  @Test
+  def testSelectUInt32(): Unit = {
+    case class Foo(x: Long)
+
+    implicit val FooDecoder = new Decoder[Foo] {
+      override def validate(names: Array[String], types: Array[String]): Boolean = {
+        names.sameElements(Array("x")) &&
+        types.sameElements(Array("UInt32"))
+      }
+
+      override def transpose(numberOfItems: Int, columns: Array[Column]) = {
+        new Iterator[Foo] {
+          val xs = columns(0).data.asInstanceOf[Array[Int]]
+          var i = 0
+
+          override def hasNext = i < numberOfItems
+
+          override def next() = {
+            val res = Foo(xs(i) & 0xFFFFFFFFL)
+            i += 1
+            res
+          }
+        }
+      }
+    }
+
+    val forCreate = "create table test_uint32(x UInt32) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_uint32(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    for (_ <- 1 to ROWS_NUMBER) {
+      ps.setLong(1, Random.nextInt() & 0xFFFFFFFFL)
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[Long](ROWS_NUMBER)
+    val scalaRes = new Array[Long](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_uint32 limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getLong("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      assert(javaRes.sameElements(scalaRes))
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
+
+  @Test
+  def testSelectUInt64(): Unit = {
+    case class Foo(x: BigDecimal)
+
+    implicit val FooDecoder = new Decoder[Foo] {
+      override def validate(names: Array[String], types: Array[String]): Boolean = {
+        names.sameElements(Array("x")) &&
+        types.sameElements(Array("UInt64"))
+      }
+
+      override def transpose(numberOfItems: Int, columns: Array[Column]) = {
+        new Iterator[Foo] {
+          val xs = columns(0).data.asInstanceOf[Array[Long]]
+          var i = 0
+          val addition = BigDecimal(Long.MaxValue) + BigDecimal(Long.MaxValue) + 2
+
+          override def hasNext = i < numberOfItems
+
+          override def next() = {
+            val l = xs(i)
+            val res = Foo(
+              if (l >= 0) BigDecimal(l)
+              else BigDecimal(l) + addition
+            )
+            i += 1
+            res
+          }
+        }
+      }
+    }
+
+    val forCreate = "create table test_uint64(x UInt64) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_uint64(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    val rnd = new Random()
+    for (_ <- 1 to ROWS_NUMBER) {
+      ps.setString(1, BigInt(Random.nextInt(64), rnd).toString)
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[BigDecimal](ROWS_NUMBER)
+    val scalaRes = new Array[BigDecimal](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_uint64 limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getBigDecimal("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      assert(javaRes.sameElements(scalaRes))
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
+
+  @Test
   def testSelectString(): Unit = {
     case class Foo(x: String)
 
     implicit val FooDecoder = new Decoder[Foo] {
       override def validate(names: Array[String], types: Array[String]): Boolean = {
         names.sameElements(Array("x")) &&
-          types.sameElements(Array("String"))
+        types.sameElements(Array("String"))
       }
 
       override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {

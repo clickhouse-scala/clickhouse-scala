@@ -42,7 +42,8 @@ object Native {
       val types = new Array[String](numberOfColumns)
       val data = new Array[Column](numberOfColumns)
 
-      for (i <- 0 until numberOfColumns) {
+      var i = 0
+      while (i < numberOfColumns) {
         val columnName = in.readString()
         val columnType = in.readString()
         val isLastColumn = i == numberOfColumns - 1
@@ -60,6 +61,8 @@ object Native {
           // todo streaming if it's last column, yield class immediately
           data(i) = column
         }
+
+        i += 1
       }
 
       Block(numberOfRows, data = data, info = info, columnsWithTypes = Some(names.zip(types)))
