@@ -27,6 +27,7 @@ object Column {
     case "String" => StringColumn.readAllFrom(in, itemsNumber)
     case FixedStringRegex(itemLength) => FixedStringColumn.readAllFrom(in, itemsNumber, itemLength.toInt)
     case "Date" => DateColumn.readAllFrom(in, itemsNumber)
+    case "DateTime" => DateTimeColumn.readAllFrom(in, itemsNumber)
     case ArrayRegex(innerType) => ArrayColumn.readAllFrom(in, itemsNumber, innerType)
     case NullableRegex(innerType) => NullableColumn.readAllFrom(in, itemsNumber, innerType)
   }

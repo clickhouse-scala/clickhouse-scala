@@ -1,7 +1,7 @@
 package integration.copypasted
 
 import java.sql.{Connection => SQLConnection, Array => _, _}
-import java.time.LocalDate
+import java.time._
 
 import chdriver.core._
 import chdriver.core.columns.Column
@@ -716,7 +716,7 @@ class BasicTypesSelect {
     implicit val FooDecoder = new Decoder[Foo] {
       override def validate(names: Array[String], types: Array[String]): Boolean = {
         names.sameElements(Array("x")) &&
-          types.sameElements(Array("FixedString(42)"))
+        types.sameElements(Array("FixedString(42)"))
       }
 
       override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {
@@ -792,7 +792,7 @@ class BasicTypesSelect {
     implicit val FooDecoder = new Decoder[Foo] {
       override def validate(names: Array[String], types: Array[String]) = {
         names.sameElements(Array("x")) &&
-          types.sameElements(Array("Date"))
+        types.sameElements(Array("Date"))
       }
 
       override def transpose(numberOfItems: Int, columns: Array[Column]) = {
@@ -818,13 +818,13 @@ class BasicTypesSelect {
     val ps = conn.prepareStatement(forInsert)
     for (_ <- 1 to ROWS_NUMBER) {
       val date = epochStart.plusDays(1 + Random.nextInt(24836)).toString // days for 2037-12-31
-      ps.setString(1, date)
+      ps.setDate(1, Date.valueOf(date))
       ps.addBatch()
     }
     ps.executeBatch()
     conn.commit()
 
-    val javaRes = new Array[java.sql.Date](ROWS_NUMBER)
+    val javaRes = new Array[Date](ROWS_NUMBER)
     val scalaRes = new Array[LocalDate](ROWS_NUMBER)
     var javaTime = 0L
     var scalaTime = 0L
@@ -851,8 +851,83 @@ class BasicTypesSelect {
       }
       scalaTime += System.currentTimeMillis - now
 
-      // for fairness, compare 'toString' instead of converting one Date class to another
-      assert(javaRes.zip(scalaRes).forall { case (java, scala) => java.toString == scala.toString})
+      assert(javaRes.zip(scalaRes).forall { case (java, scala) => java.toLocalDate == scala })
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
+
+  @Test
+  def testSelectDateTime(): Unit = {
+    case class Foo(x: LocalDateTime)
+
+    val forCreate = "create table test_datetime(x DateTime) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_datetime(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    for (_ <- 1 to ROWS_NUMBER) {
+      ps.setTimestamp(1, Timestamp.from(Instant.ofEpochSecond(1 + Math.abs(Random.nextLong() % 2145916799L)))) // seconds for 2037-12-31T23:59:59
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[Timestamp](ROWS_NUMBER)
+    val scalaRes = new Array[LocalDateTime](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_datetime limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getTimestamp("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      // EXAMPLE: how to get server's current zone offset
+      scalaClient.connection.forceConnect() // server's timezone is set during initial handshake
+      val tz = scalaClient.connection.getServerTimeZoneName.getOrElse("Zulu") // now we can read it, fallback to UTC
+      val zoneId = ZoneId.of(tz)
+      val zoneOffset = LocalDateTime.now().atZone(zoneId).getOffset
+      // now put it in decoder
+      implicit val FooDecoder = new Decoder[Foo] {
+        override def validate(names: Array[String], types: Array[String]) = {
+          names.sameElements(Array("x")) &&
+          types.sameElements(Array("DateTime"))
+        }
+
+        override def transpose(numberOfItems: Int, columns: Array[Column]) = {
+          new Iterator[Foo] {
+            val xs = columns(0).data.asInstanceOf[Array[Int]]
+            var i = 0
+
+            override def hasNext = i < numberOfItems
+
+            override def next() = {
+              val res = Foo(LocalDateTime.ofEpochSecond(xs(i), 0, zoneOffset))
+              i += 1
+              res
+            }
+          }
+        }
+      }
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      assert(javaRes.zip(scalaRes).forall { case (java, scala) => java.toInstant == scala.toInstant(zoneOffset) })
     }
 
     println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")

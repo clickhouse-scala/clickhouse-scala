@@ -17,6 +17,9 @@ class Connection(val host: String = "localhost",
   import chdriver.core.blocks.Native.{BlockOutputStream, BlockInputStream}
 
   var serverRevision: Int = _
+  private var _serverTZ: String = _
+
+  def getServerTimeZoneName: Option[String] = Option(_serverTZ)
 
   private var connected = false
   private var socket: Socket = _
@@ -97,9 +100,7 @@ class Connection(val host: String = "localhost",
     serverRevision = in.readAsUInt128()
 
     if (serverRevision >= DBMS_MIN_REVISION_WITH_SERVER_TIMEZONE) {
-      size = in.readAsUInt128()
-      val serverTimezone = new Array[Byte](size)
-      in.readFully(serverTimezone)
+      _serverTZ = in.readString()
     }
   }
 
