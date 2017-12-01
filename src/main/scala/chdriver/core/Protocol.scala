@@ -119,6 +119,11 @@ object Protocol {
 
   object DataInputStreamOps {
     @inline
+    final def fromBytes(b1: Byte, b2: Byte): Short = {
+      (((b1 & 0xFF) << 8) | b2 & 0xFF).asInstanceOf[Short]
+    }
+
+    @inline
     final def fromBytes(b1: Byte, b2: Byte, b3: Byte, b4: Byte): Int = {
       b1 << 24 | (b2 & 0xFF) << 16 | (b3 & 0xFF) << 8 | (b4 & 0xFF)
     }

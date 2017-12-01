@@ -29,7 +29,7 @@ object Int16Column {
     val result = new Array[Short](itemsNumber)
     var i = 0
     while (i < 2 * itemsNumber) {
-      result(i / 2) = DataInputStreamOps.fromBytes(0, 0, data(i + 1), data(i)).asInstanceOf[Short]
+      result(i / 2) = DataInputStreamOps.fromBytes(data(i + 1), data(i))
       i += 2
     }
     new Int16Column(result)

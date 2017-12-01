@@ -1,6 +1,7 @@
 package integration.copypasted
 
-import java.sql.{Array => _, Connection => SQLConnection, _}
+import java.sql.{Connection => SQLConnection, Array => _, _}
+import java.time.LocalDate
 
 import chdriver.core._
 import chdriver.core.columns.Column
@@ -777,6 +778,81 @@ class BasicTypesSelect {
       scalaTime += System.currentTimeMillis - now
 
       assert(javaRes.sameElements(scalaRes))
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
+
+  @Test
+  def testSelectDate(): Unit = {
+    val epochStart = LocalDate.ofEpochDay(0)
+
+    case class Foo(x: LocalDate)
+
+    implicit val FooDecoder = new Decoder[Foo] {
+      override def validate(names: Array[String], types: Array[String]) = {
+        names.sameElements(Array("x")) &&
+          types.sameElements(Array("Date"))
+      }
+
+      override def transpose(numberOfItems: Int, columns: Array[Column]) = {
+        new Iterator[Foo] {
+          val xs = columns(0).data.asInstanceOf[Array[Short]]
+          var i = 0
+
+          override def hasNext = i < numberOfItems
+
+          override def next() = {
+            val res = Foo(epochStart.plusDays(xs(i)))
+            i += 1
+            res
+          }
+        }
+      }
+    }
+
+    val forCreate = "create table test_date(x Date) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_date(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    for (_ <- 1 to ROWS_NUMBER) {
+      val date = epochStart.plusDays(1 + Random.nextInt(24836)).toString // days for 2037-12-31
+      ps.setString(1, date)
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[java.sql.Date](ROWS_NUMBER)
+    val scalaRes = new Array[LocalDate](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_date limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getDate("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      // for fairness, compare 'toString' instead of converting one Date class to another
+      assert(javaRes.zip(scalaRes).forall { case (java, scala) => java.toString == scala.toString})
     }
 
     println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")

@@ -3,8 +3,6 @@ package chdriver.core.columns
 import java.io.DataInputStream
 import java.util.Arrays
 
-import chdriver.core.{ConfigKey, ConfigValue}
-
 class StringColumn(_data: Array[String]) extends Column {
   override type T = String
   override val data = _data
@@ -25,7 +23,7 @@ object StringColumn {
 }
 
 /**
- * jdbc does not skip padding '\0', but user is free to provide own implementation.
+ * jdbc does not skip padding '\0', so we don't too, but user is free to provide own implementation of Decoder.
  */
 class FixedStringColumn(_data: Array[String], itemLength: Int) extends Column {
   override type T = String
