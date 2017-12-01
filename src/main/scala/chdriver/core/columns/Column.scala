@@ -11,8 +11,9 @@ abstract class Column {
 }
 
 object Column {
-  val ArrayRegex = "Array\\(([\\(\\)0-9A-Za-z]+)\\)".r
-  val NullableRegex = "Nullable\\(([\\(\\)0-9A-Za-z]+)\\)".r
+  val ArrayRegex = "Array\\(([0-9A-Za-z]+)\\)".r
+  val NullableRegex = "Nullable\\(([0-9A-Za-z]+)\\)".r
+  val FixedStringRegex = "FixedString\\(([0-9]+)\\)".r
 
   def from(in: DataInputStream, itemsNumber: Int, chtype: String): Column = chtype match {
     case "Int8" => Int8Column.readAllFrom(in, itemsNumber)
@@ -24,6 +25,7 @@ object Column {
     case "UInt32" => UInt32Column.readAllFrom(in, itemsNumber)
     case "UInt64" => UInt64Column.readAllFrom(in, itemsNumber)
     case "String" => StringColumn.readAllFrom(in, itemsNumber)
+    case FixedStringRegex(itemLength) => FixedStringColumn.readAllFrom(in, itemsNumber, itemLength.toInt)
     case ArrayRegex(innerType) => ArrayColumn.readAllFrom(in, itemsNumber, innerType)
     case NullableRegex(innerType) => NullableColumn.readAllFrom(in, itemsNumber, innerType)
   }

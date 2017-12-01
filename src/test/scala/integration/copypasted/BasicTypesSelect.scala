@@ -707,4 +707,78 @@ class BasicTypesSelect {
 
     println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
   }
+
+  @Test
+  def testSelectFixedString42(): Unit = {
+    case class Foo(x: String)
+
+    implicit val FooDecoder = new Decoder[Foo] {
+      override def validate(names: Array[String], types: Array[String]): Boolean = {
+        names.sameElements(Array("x")) &&
+          types.sameElements(Array("FixedString(42)"))
+      }
+
+      override def transpose(numberOfItems: Int, columns: Array[Column]): Iterator[Foo] = {
+        val xs = new Array[String](numberOfItems)
+        System.arraycopy(columns(0).data, 0, xs, 0, numberOfItems)
+
+        new Iterator[Foo] {
+          var i = 0
+          override def hasNext = i < numberOfItems
+
+          override def next() = {
+            // jdbc does not skip '\0', so this implementation does the same
+            // of course, user is free to provide own implementation
+            val res = Foo(xs(i))
+            i += 1
+            res
+          }
+        }
+      }
+    }
+
+    val forCreate = "create table test_fixed_string_42(x FixedString(42)) engine = Memory;"
+    stmt.executeUpdate(forCreate)
+
+    val forInsert = "insert into test_fixed_string_42(x) values (?)"
+    val ps = conn.prepareStatement(forInsert)
+    for (_ <- 1 to ROWS_NUMBER) {
+      ps.setString(1, Random.nextString(Random.nextInt(6)))
+      ps.addBatch()
+    }
+    ps.executeBatch()
+    conn.commit()
+
+    val javaRes = new Array[String](ROWS_NUMBER)
+    val scalaRes = new Array[String](ROWS_NUMBER)
+    var javaTime = 0L
+    var scalaTime = 0L
+    val sql = "select * from test_fixed_string_42 limit " + ROWS_NUMBER
+
+    for (_ <- 1 to ITERATIONS) {
+      var now = System.currentTimeMillis
+      var j = 0
+
+      val rs = stmt.executeQuery(sql)
+      while (rs.next) {
+        javaRes(j) = rs.getString("x")
+        j += 1
+      }
+      rs.close()
+      javaTime += System.currentTimeMillis - now
+
+      now = System.currentTimeMillis
+      val it = scalaClient.execute[Foo](sql, scalaClickhouseProperties)
+      j = 0
+      while (it.hasNext) {
+        scalaRes(j) = it.next.x
+        j += 1
+      }
+      scalaTime += System.currentTimeMillis - now
+
+      assert(javaRes.sameElements(scalaRes))
+    }
+
+    println(s"Total for table [$forCreate] and $ITERATIONS iterations: scala=$scalaTime, java=$javaTime")
+  }
 }

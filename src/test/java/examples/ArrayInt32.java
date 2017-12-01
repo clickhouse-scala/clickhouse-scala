@@ -38,6 +38,7 @@ public class ArrayInt32 {
 
         Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
         conn = DriverManager.getConnection(DB_URL + http, USER, PASS);
+        conn.setAutoCommit(false);
         stmt = conn.createStatement();
 
         createArrayInt32Table();
@@ -69,10 +70,10 @@ public class ArrayInt32 {
             }
             rs.close();
             javaTime += System.currentTimeMillis() - now;
-            System.out.println("jdbc = " + javaTime);
+            System.out.println("java = " + javaTime);
 
             now = System.currentTimeMillis();
-            scala.collection.Iterator<Foo> it = scalaClient.execute(sql, scalaClickhouseProperties, scalaDecoder);
+            Iterator<Foo> it = scalaClient.execute(sql, scalaClickhouseProperties, scalaDecoder);
             j = 0;
             while (it.hasNext()) {
                 scalaRes[j] = it.next().x;
@@ -133,7 +134,6 @@ public class ArrayInt32 {
     }
 
     private void populateArrayInt32Table() throws Exception {
-        conn.setAutoCommit(false);
         String forInsert = "insert into test_array_int32(x) values (?)";
         PreparedStatement ps = conn.prepareStatement(forInsert);
         for (int i = 0; i < 1_000_000; i++) {
@@ -143,6 +143,5 @@ public class ArrayInt32 {
         }
         ps.executeBatch();
         conn.commit();
-        conn.setAutoCommit(true);
     }
 }

@@ -10,12 +10,12 @@ trait Decoder[T] {
   def validate(names: Array[String], types: Array[String]): Boolean
 
   /**
-    * Clickhouse sends data in chdriver.core.blocks, column by column. Let's consider a example:
+    * Clickhouse sends data in blocks, column by column. Let's consider a example:
     *
     * `class Foo(i: Int, s: String)
     * select * from foo`
     *
-    * Result may be divided in 10 chdriver.core.blocks, each containing 1/10 of total number of rows.
+    * Result may be divided in 10 blocks, each containing 1/10 of total number of rows.
     * For each block, we receive all `i` == `columns(0)`, then all `s` == `columns(1)`, and
     * `columns(0).data.length` == `columns(1).data.length` == `numberOfItems`.
     *
