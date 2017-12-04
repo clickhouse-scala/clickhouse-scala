@@ -14,7 +14,7 @@ import java.io.DataInputStream
  */
 class DateTimeColumn(_data: Array[Int]) extends Column {
   override type T = Int
-  override val data: Array[Int] = _data
+  override val data = _data
 }
 
 object DateTimeColumn {

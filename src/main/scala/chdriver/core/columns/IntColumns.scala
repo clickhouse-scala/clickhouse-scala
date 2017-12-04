@@ -4,7 +4,7 @@ import java.io.DataInputStream
 
 class Int8Column(_data: Array[Byte]) extends Column {
   override type T = Byte
-  override val data: Array[Byte] = _data
+  override val data = _data
 }
 
 object Int8Column {
@@ -17,7 +17,7 @@ object Int8Column {
 
 class Int16Column(_data: Array[Short]) extends Column {
   override type T = Short
-  override val data: Array[Short] = _data
+  override val data = _data
 }
 
 object Int16Column {
@@ -38,7 +38,7 @@ object Int16Column {
 
 class Int32Column(_data: Array[Int]) extends Column {
   override type T = Int
-  override val data: Array[Int] = _data
+  override val data = _data
 }
 
 object Int32Column {
@@ -59,7 +59,7 @@ object Int32Column {
 
 class Int64Column(_data: Array[Long]) extends Column {
   override type T = Long
-  override val data: Array[Long] = _data
+  override val data = _data
 }
 
 object Int64Column {

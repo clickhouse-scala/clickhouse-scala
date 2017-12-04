@@ -25,6 +25,8 @@ object Column {
     case "UInt32" => UInt32Column.readAllFrom(in, itemsNumber)
     case "UInt64" => UInt64Column.readAllFrom(in, itemsNumber)
     case "String" => StringColumn.readAllFrom(in, itemsNumber)
+    case "Float64" => Float64Column.readAllFrom(in, itemsNumber)
+    case "Float32" => Float32Column.readAllFrom(in, itemsNumber)
     case FixedStringRegex(itemLength) => FixedStringColumn.readAllFrom(in, itemsNumber, itemLength.toInt)
     case "Date" => DateColumn.readAllFrom(in, itemsNumber)
     case "DateTime" => DateTimeColumn.readAllFrom(in, itemsNumber)

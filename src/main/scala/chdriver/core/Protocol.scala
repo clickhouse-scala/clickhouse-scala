@@ -2,6 +2,11 @@ package chdriver.core
 
 import java.io.{DataInputStream, DataOutputStream, EOFException}
 
+/**
+  * ClickHouse uses little-endian byte encoding, and this class provides utilities to work with it.
+  *
+  * Due to "as less external dependencies as possible" goal we decided to copy-paste most of code below from Guava.
+  */
 object Protocol {
   implicit class DataOutputStreamOps(val out: DataOutputStream) extends AnyVal {
     def writeAsUInt128(value: Int): Unit = {
