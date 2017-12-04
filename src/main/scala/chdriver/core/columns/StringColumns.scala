@@ -1,7 +1,6 @@
 package chdriver.core.columns
 
 import java.io.DataInputStream
-import java.util.Arrays
 
 class StringColumn(_data: Array[String]) extends Column {
   override type T = String
@@ -12,13 +11,13 @@ object StringColumn {
   import chdriver.core.Protocol.DataInputStreamOps
 
   def readAllFrom(in: DataInputStream, itemsNumber: Int): StringColumn = {
-    val data = new Array[String](itemsNumber)
+    val result = new Array[String](itemsNumber)
     var i = 0
     while (i < itemsNumber) {
-      data(i) = in.readString()
+      result(i) = in.readString()
       i += 1
     }
-    new StringColumn(data)
+    new StringColumn(result)
   }
 }
 
@@ -32,13 +31,14 @@ class FixedStringColumn(_data: Array[String], itemLength: Int) extends Column {
 
 object FixedStringColumn {
   def readAllFrom(in: DataInputStream, itemsNumber: Int, itemLength: Int): FixedStringColumn = {
-    val data = new Array[Byte](itemsNumber * itemLength)
-    in.readFully(data)
+    // todo advanced_functionality optimization somehow use knowledge of fixed string size; why FixedString is so much slower?
     val result = new Array[String](itemsNumber)
     var i = 0
-    while (i < itemsNumber * itemLength) {
-      result(i / itemLength) = new String(Arrays.copyOfRange(data, i, i + itemLength), "UTF-8")
-      i += itemLength
+    while (i < itemsNumber) {
+      val item = new Array[Byte](itemLength)
+      in.readFully(item)
+      result(i) = new String(item, "UTF-8")
+      i += 1
     }
     new FixedStringColumn(result, itemLength)
   }
