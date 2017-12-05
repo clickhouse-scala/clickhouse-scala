@@ -21,7 +21,7 @@ import scala.util.Random
  * information about performance.
  */
 object BasicTypesSelect {
-  final val DB_URL = "jdbc:clickhouse://localhost"
+  final def dbUrl(port: Int) = s"jdbc:clickhouse://localhost:$port"
   final val USER = "default"
   final val PASS = ""
   final val ROWS_NUMBER = 1000000
@@ -40,7 +40,7 @@ object BasicTypesSelect {
     val http = chServer.getMappedPort(8123)
     val tcp = chServer.getMappedPort(9000)
     Class.forName("ru.yandex.clickhouse.ClickHouseDriver")
-    conn = DriverManager.getConnection(s"$DB_URL:$http", USER, PASS)
+    conn = DriverManager.getConnection(dbUrl(http), USER, PASS)
     conn.setAutoCommit(false)
     stmt = conn.createStatement
     scalaClient = new Client(
