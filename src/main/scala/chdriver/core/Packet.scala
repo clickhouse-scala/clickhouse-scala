@@ -7,6 +7,33 @@ sealed trait Packet // todo basic_functionality do we need this hierarchy here?
 
 case class DataPacket[T](block: Block[T]) extends Packet // todo basic_functionality rest fields
 
+case class ExceptionPacket(text: String) extends Exception(text) with Packet
+
+object ExceptionPacket {
+  def readItselfFrom(in: DataInputStream): ExceptionPacket = {
+    import Protocol.DataInputStreamOps
+    val code = in.readInt32()
+    val name = in.readString()
+    val message = in.readString()
+    val stackTrace = in.readString()
+    val nestedException: Option[ExceptionPacket] =
+      if (in.readUInt8() > 0) {
+        Some(readItselfFrom(in))
+      } else None
+    val text =
+      s"""
+         |DRIVER EXCEPTION:
+         |  code=$code
+         |  name=$name
+         |  message=$message
+         |  stacktrace:
+         |  $stackTrace
+         |  ${nestedException.map(_.toString).getOrElse("")}
+       """.stripMargin
+    new ExceptionPacket(text)
+  }
+}
+
 case class ProfileInfoPacket(rows: Int,
                              blocks: Int,
                              bytes: Int,

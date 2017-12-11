@@ -27,6 +27,9 @@ class Client(val insertBlockSize: Int = DriverProperties.DEFAULT_INSERT_BLOCK_SI
       case data: DataPacket[T] @unchecked =>
         receiveResultNoProgress(columnar, result ++ data.block.iterator)
 
+      case e: ExceptionPacket =>
+        throw e
+
       case profileInto: ProfileInfoPacket =>
         // todo do smth
         receiveResultNoProgress(columnar, result)

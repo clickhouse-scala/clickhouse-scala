@@ -89,11 +89,7 @@ class Connection(val host: String = "localhost",
 
   private def receiveHello(): Unit = {
     val packetType = in.readAsUInt128() // todo basic_functionality other packet types
-
-    var size = in.readAsUInt128()
-    val serverName = new Array[Byte](size)
-    in.readFully(serverName)
-
+    val serverName = in.readString()
     val serverVersionMajor = in.readAsUInt128()
     val serverVersionMinor = in.readAsUInt128()
 
@@ -126,6 +122,9 @@ class Connection(val host: String = "localhost",
       case ServerPacketType.DATA =>
         val data = receiveData()
         DataPacket(data)
+
+      case ServerPacketType.EXCEPTION =>
+        ExceptionPacket.readItselfFrom(in)
 
       case ServerPacketType.PROGRESS =>
         ProgressPacket.readItselfFrom(in, serverRevision)
