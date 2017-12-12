@@ -9,6 +9,20 @@ import java.io.{DataInputStream, DataOutputStream, EOFException}
   */
 object Protocol {
   implicit class DataOutputStreamOps(val out: DataOutputStream) extends AnyVal {
+    def writeUInt8(v: Int): Unit = {
+      assert(v >= 0 && v <= DataOutputStreamOps.U_INT8_MAX)
+      val unsigned = (v & 0xffL).toByte
+      out.writeByte(unsigned)
+    }
+
+    def writeUInt8(v: Boolean): Unit = {
+      out.writeByte(if (v) 1 else 0)
+    }
+
+    def writeInt32(v: Int): Unit = {
+      writeIntLeb(v)
+    }
+
     def writeAsUInt128(value: Int): Unit = {
       assert(value >= 0)
       var v = value
@@ -27,20 +41,6 @@ object Protocol {
       out.write(bytes)
     }
 
-    def writeUInt8(v: Int): Unit = {
-      assert(v >= 0 && v <= DataOutputStreamOps.U_INT8_MAX)
-      val unsigned = (v & 0xffL).toByte
-      out.writeByte(unsigned)
-    }
-
-    def writeUInt8(v: Boolean): Unit = {
-      out.writeByte(if (v) 1 else 0)
-    }
-
-    def writeInt32(v: Int): Unit = {
-      writeIntLeb(v)
-    }
-
     private def writeIntLeb(v: Int): Unit = {
       out.write(0xFF & v)
       out.write(0xFF & (v >> 8))
@@ -56,25 +56,6 @@ object Protocol {
   }
 
   implicit class DataInputStreamOps(val in: DataInputStream) extends AnyVal {
-    def readAsUInt128(): Int = { // todo advanced_functionality change to longer type?
-      var shift = 0
-      var result = 0
-      var i = 0x80
-      while ((i & 0x80) != 0) {
-        i = in.readByte()
-        result |= (i & 0x7f) << shift
-        shift += 7
-      }
-      result
-    }
-
-    def readString(): String = {
-      val length = readAsUInt128()
-      val result = new Array[Byte](length)
-      in.readFully(result)
-      new String(result, "UTF-8")
-    }
-
     def readUInt8(): Int = {
       val b = in.read()
       if (0 > b) throw new EOFException
@@ -101,6 +82,18 @@ object Protocol {
       DataInputStreamOps.fromBytes(b8, b7, b6, b5, b4, b3, b2, b1)
     }
 
+    def readAsUInt128(): Int = { // todo advanced_functionality change to longer type?
+      var shift = 0
+      var result = 0
+      var i = 0x80
+      while ((i & 0x80) != 0) {
+        i = in.readByte()
+        result |= (i & 0x7f) << shift
+        shift += 7
+      }
+      result
+    }
+
     def readArrayInt64(length: Int): Array[Long] = {
       val data = new Array[Byte](8 * length)
       in.readFully(data)
@@ -120,12 +113,19 @@ object Protocol {
       }
       result
     }
+
+    def readString(): String = {
+      val length = readAsUInt128()
+      val result = new Array[Byte](length)
+      in.readFully(result)
+      new String(result, "UTF-8")
+    }
   }
 
   object DataInputStreamOps {
     @inline
     final def fromBytes(b1: Byte, b2: Byte): Short = {
-      (((b1 & 0xFF) << 8) | b2 & 0xFF).asInstanceOf[Short]
+      (((b1 & 0xFF) << 8) | b2 & 0xFF).toShort
     }
 
     @inline

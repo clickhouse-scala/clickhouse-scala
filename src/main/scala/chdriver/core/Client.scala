@@ -15,34 +15,32 @@ class Client(val insertBlockSize: Int = DriverProperties.DEFAULT_INSERT_BLOCK_SI
     receiveResult()
   }
 
-  def receiveResult[T: Decoder](withColumnTypes: Boolean = false,
-                                progress: Boolean = false,
-                                columnar: Boolean = false): Iterator[T] = {
-    receiveResultNoProgress(columnar, Iterator[T]())
+  def receiveResult[T: Decoder](): Iterator[T] = {
+    receiveResultNoProgress(Iterator[T]())
   }
 
   @annotation.tailrec
-  final def receiveResultNoProgress[T: Decoder](columnar: Boolean = false, result: Iterator[T]): Iterator[T] = {
+  final def receiveResultNoProgress[T: Decoder](result: Iterator[T]): Iterator[T] = {
     connection.receivePacket() match {
       case data: DataPacket[T] @unchecked =>
-        receiveResultNoProgress(columnar, result ++ data.block.iterator)
+        receiveResultNoProgress(result ++ data.block.iterator)
 
       case e: ExceptionPacket =>
         throw e
 
       case profileInto: ProfileInfoPacket =>
         // todo do smth
-        receiveResultNoProgress(columnar, result)
+        receiveResultNoProgress(result)
 
       case progress: ProgressPacket =>
         // todo do smth, backpressure?
-        receiveResultNoProgress(columnar, result)
+        receiveResultNoProgress(result)
 
       case EndOfStreamPacket =>
         result
 
       case UnrecognizedPacket =>
-        receiveResultNoProgress(columnar, result)
+        receiveResultNoProgress(result)
     }
   }
 }

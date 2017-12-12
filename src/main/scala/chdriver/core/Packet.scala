@@ -10,7 +10,7 @@ case class DataPacket[T](block: Block[T]) extends Packet // todo basic_functiona
 case class ExceptionPacket(text: String) extends Exception(text) with Packet
 
 object ExceptionPacket {
-  def readItselfFrom(in: DataInputStream): ExceptionPacket = {
+  def from(in: DataInputStream): ExceptionPacket = {
     import Protocol.DataInputStreamOps
     val code = in.readInt32()
     val name = in.readString()
@@ -18,7 +18,7 @@ object ExceptionPacket {
     val stackTrace = in.readString()
     val nestedException: Option[ExceptionPacket] =
       if (in.readUInt8() > 0) {
-        Some(readItselfFrom(in))
+        Some(from(in))
       } else None
     val text =
       s"""
@@ -43,7 +43,7 @@ case class ProfileInfoPacket(rows: Int,
     extends Packet
 
 object ProfileInfoPacket {
-  def readItselfFrom(in: DataInputStream): ProfileInfoPacket = {
+  def from(in: DataInputStream): ProfileInfoPacket = {
     import Protocol.DataInputStreamOps
     ProfileInfoPacket(
       in.readAsUInt128(),
@@ -60,7 +60,7 @@ object ProfileInfoPacket {
 case class ProgressPacket(newRows: Int, newBytes: Int, newTotalRows: Int) extends Packet
 
 case object ProgressPacket {
-  def readItselfFrom(in: DataInputStream, serverRevision: Int): ProgressPacket = {
+  def from(in: DataInputStream, serverRevision: Int): ProgressPacket = {
     import Protocol.DataInputStreamOps
     ProgressPacket(
       in.readAsUInt128(),

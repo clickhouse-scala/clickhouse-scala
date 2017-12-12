@@ -88,15 +88,26 @@ class Connection(val host: String = "localhost",
   }
 
   private def receiveHello(): Unit = {
-    val packetType = in.readAsUInt128() // todo basic_functionality other packet types
-    val serverName = in.readString()
-    val serverVersionMajor = in.readAsUInt128()
-    val serverVersionMinor = in.readAsUInt128()
+    in.readAsUInt128() match {
+      case ServerPacketTypes.HELLO =>
+        val serverName = in.readString()
+        val serverVersionMajor = in.readAsUInt128()
+        val serverVersionMinor = in.readAsUInt128()
+        serverRevision = in.readAsUInt128()
 
-    serverRevision = in.readAsUInt128()
+        println(s"Connected to $serverName $serverVersionMajor:$serverVersionMinor, revision = $serverRevision")
 
-    if (serverRevision >= DBMS_MIN_REVISION_WITH_SERVER_TIMEZONE) {
-      _serverTZ = in.readString()
+        if (serverRevision >= DBMS_MIN_REVISION_WITH_SERVER_TIMEZONE) {
+          _serverTZ = in.readString()
+          println(s"Server timezone = ${_serverTZ}")
+        }
+
+      case ServerPacketTypes.EXCEPTION =>
+        throw ExceptionPacket.from(in)
+
+      case e =>
+        disconnect()
+        throw new DriverException(s"Unexpected packet type $e in response to 'hello' message")
     }
   }
 
@@ -118,21 +129,25 @@ class Connection(val host: String = "localhost",
   def receivePacket[T: Decoder](): Packet = {
     val packetType = in.readAsUInt128()
 
-    packetType match { // todo basic_functionality other types
-      case ServerPacketType.DATA =>
+    packetType match {
+      case ServerPacketTypes.DATA =>
         val data = receiveData()
         DataPacket(data)
 
-      case ServerPacketType.EXCEPTION =>
-        ExceptionPacket.readItselfFrom(in)
+      case ServerPacketTypes.EXCEPTION =>
+        ExceptionPacket.from(in)
 
-      case ServerPacketType.PROGRESS =>
-        ProgressPacket.readItselfFrom(in, serverRevision)
+      case ServerPacketTypes.PROGRESS =>
+        ProgressPacket.from(in, serverRevision)
 
-      case ServerPacketType.PROFILE_INFO =>
-        ProfileInfoPacket.readItselfFrom(in)
+      case ServerPacketTypes.PROFILE_INFO =>
+        ProfileInfoPacket.from(in)
 
-      case ServerPacketType.END_OF_STREAM =>
+      case ServerPacketTypes.TOTALS | ServerPacketTypes.EXTREMES => // todo advanced_functionality what are these for?
+        val data = receiveData()
+        DataPacket(data)
+
+      case ServerPacketTypes.END_OF_STREAM =>
         EndOfStreamPacket
     }
   }

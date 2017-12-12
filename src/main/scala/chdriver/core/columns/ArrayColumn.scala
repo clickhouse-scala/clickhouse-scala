@@ -87,7 +87,7 @@ object ArrayColumn {
             val newNodes = new Array[Any](o - previousOffset)
             data(i) = newNodes
             previousOffset = o
-            datas.addFirst(newNodes, innerType.substring(prefix.length, innerType.length - 1))
+            datas.addFirst(newNodes -> innerType.substring(prefix.length, innerType.length - 1))
             i += 1
           }
         }
@@ -97,7 +97,7 @@ object ArrayColumn {
     val data = new Array[Any](itemsNumber)
     val offsets = fillOffsets()
     val q = new ArrayDeque[(Array[Any], String)]
-    q.addFirst(data, innerType)
+    q.addFirst(data -> innerType)
     fillData(q, offsets)
 
     new ArrayColumn(data)

@@ -57,7 +57,7 @@ object DriverProperties {
   final val BUFFER_SIZE = 65536 // todo basic_functionality read from config
 }
 
-object ServerPacketType {
+object ServerPacketTypes {
   // Name, version, revision.
   final val HELLO = 0
 
