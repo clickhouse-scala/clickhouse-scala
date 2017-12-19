@@ -19,7 +19,10 @@ class Client(val insertBlockSize: Int = DriverProperties.DEFAULT_INSERT_BLOCK_SI
     subscriber
   }
 
-  def execute[T](query: String, settings: ClickhouseProperties)(implicit decoder: Decoder[T]): Iterator[T] = {
+
+  //todo: Replace result Iterator[T] with Publisher[T]?
+  def execute[T](query: String, settings: ClickhouseProperties = new ClickhouseProperties)(implicit decoder: Decoder[T]): Iterator[T] = {
+    // todo basic_functionality insert vs select distinction
     connection.forceConnect()
 
     connection.sendQuery(query, settings)
