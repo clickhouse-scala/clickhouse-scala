@@ -1,12 +1,13 @@
 package chdriver.core.columns
 
-import java.io.DataInputStream
+import java.io.{DataInputStream, DataOutputStream}
 
 abstract class Column {
   type T
   val data: Array[T]
 
-  def writeItselfTo(): Unit = ??? // todo basic_functionality for inserts
+  def writeTo(out: DataOutputStream, toRow: Int): Unit = ???
+
   override def toString: String = s"Column(${data.mkString(" ")})"
 }
 

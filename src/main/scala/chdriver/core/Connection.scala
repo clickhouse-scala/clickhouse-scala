@@ -6,16 +6,14 @@ import java.net.Socket
 import ClickhouseVersionSpecific._
 import DriverProperties._
 
-class Connection(val host: String = "localhost",
-                 val port: Int = 9000,
-                 val clientName: String = CLIENT_NAME,
-                 val database: String = "default",
-                 val user: String = "default",
-                 val password: String = "",
+final class Connection(val host: String = "localhost",
+                       val port: Int = 9000,
+                       val clientName: String = CLIENT_NAME,
+                       val database: String = "default",
+                       val user: String = "default",
+                       val password: String = "",
 ) {
   import Protocol._
-  import chdriver.core.blocks.Native.{BlockOutputStream, BlockInputStream}
-
   var serverRevision: Int = _
   private var _serverTZ: String = _
 
@@ -23,9 +21,10 @@ class Connection(val host: String = "localhost",
 
   private var connected = false
   private var socket: Socket = _
-  private var out: DataOutputStream = _
-  private var in: DataInputStream = _
+  private[chdriver] var out: DataOutputStream = _
+  private[chdriver] var in: DataInputStream = _
 
+  // todo do this in constructor ?
   def connect(): Unit = {
     socket = new Socket(host, port)
     // todo basic_functionality timeout
@@ -36,8 +35,8 @@ class Connection(val host: String = "localhost",
     // todo advanced_functionality investigate possibility to iterate on several columns simultaneously
     // todo advanced_functionality investigate nio / netty
     // todo advanced_functionality investigate https://github.com/real-logic/agrona/tree/master/agrona/src/main/java/org/agrona/io
-    out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream, BUFFER_SIZE))
-    in = new DataInputStream(new BufferedInputStream(socket.getInputStream, BUFFER_SIZE))
+    out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream, INPUT_BUFFER_SIZE))
+    in = new DataInputStream(new BufferedInputStream(socket.getInputStream, INPUT_BUFFER_SIZE))
 
     sendHello()
     receiveHello()
@@ -61,21 +60,20 @@ class Connection(val host: String = "localhost",
     out.writeString(queryId)
     if (serverRevision > DBMS_MIN_REVISION_WITH_CLIENT_INFO) {
       val clientInfo = new ClientInfo(name = CLIENT_NAME, queryKind = ClientInfo.QueryKind.INITIAL_QUERY)
-      clientInfo.writeItselfTo(out, serverRevision)
+      clientInfo.writeTo(out, serverRevision)
     }
-    settings.writeItselfTo(out)
+    settings.writeTo(out)
     out.writeAsUInt128(QueryProcessingStage.COMPLETE)
     out.writeAsUInt128(Compression.DISABLED) // todo advanced_functionality compressions
     out.writeString(query)
     out.flush()
   }
 
-  private[chdriver] def sendExternalTables(): Unit = { // todo basic_functionality
-    val fake = null
-    sendData(new Block[Any](0, fake, columnsWithTypes = None)(null))
+  private[chdriver] def sendExternalTables(): Unit = { // todo advanced_functionality mocked
+    sendData(Block.empty, until = 1)
   }
 
-  private def sendHello(): Unit = {
+  private[chdriver] def sendHello(): Unit = {
     out.writeAsUInt128(ClientPacketTypes.HELLO)
     out.writeString(CLIENT_NAME)
     out.writeAsUInt128(DBMS_VERSION_MAJOR)
@@ -87,7 +85,7 @@ class Connection(val host: String = "localhost",
     out.flush()
   }
 
-  private def receiveHello(): Unit = {
+  private[chdriver] def receiveHello(): Unit = {
     in.readAsUInt128() match {
       case ServerPacketTypes.HELLO =>
         val serverName = in.readString()
@@ -111,22 +109,22 @@ class Connection(val host: String = "localhost",
     }
   }
 
-  private def sendData(block: Block[_], tableName: String = ""): Unit = {
+  private[chdriver] def sendData(block: Block, tableName: String = "", until: Int): Unit = {
     out.writeAsUInt128(ClientPacketTypes.DATA)
     if (serverRevision >= DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES) {
       out.writeString(tableName)
     }
-    out.writeBlock(block, serverRevision)
+    block.writeTo(out, until)
   }
 
-  private def receiveData[T: Decoder](): Block[T] = {
+  private def receiveData(): Block = {
     if (serverRevision > DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES) {
       val _ = in.readString()
     }
-    in.readBlock(serverRevision)
+    Block.from(in)
   }
 
-  def receivePacket[T: Decoder](): Packet = {
+  private[chdriver] def receivePacket(): Packet = {
     val packetType = in.readAsUInt128()
 
     packetType match {
@@ -143,12 +141,23 @@ class Connection(val host: String = "localhost",
       case ServerPacketTypes.PROFILE_INFO =>
         ProfileInfoPacket.from(in)
 
-      case ServerPacketTypes.TOTALS | ServerPacketTypes.EXTREMES => // todo advanced_functionality what are these for?
+      case ServerPacketTypes.TOTALS => // todo advanced_functionality what are these for?
+        val data = receiveData()
+        DataPacket(data)
+
+      case ServerPacketTypes.EXTREMES =>
         val data = receiveData()
         DataPacket(data)
 
       case ServerPacketTypes.END_OF_STREAM =>
         EndOfStreamPacket
     }
+  }
+
+  @annotation.tailrec
+  private[chdriver] def receiveSampleEmptyBlock(): Block = receivePacket() match {
+    case DataPacket(b) => b
+    case EndOfStreamPacket => receiveSampleEmptyBlock()
+    case p => throw new DriverException(s"Unexpected packet $p. Expected DATA.")
   }
 }

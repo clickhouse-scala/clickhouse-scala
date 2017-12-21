@@ -1,11 +1,25 @@
 package chdriver.core
 
+import org.reactivestreams.Publisher
+
 class Client(val insertBlockSize: Int = DriverProperties.DEFAULT_INSERT_BLOCK_SIZE,
              val connection: Connection = new Connection()) {
-  def disconnect(): Unit = connection.disconnect()
+
+  def insert[T: Encoder](query: String,
+                         settings: ClickhouseProperties,
+                         publisher: Publisher[T]): ClickHouseSubscriber[T] = {
+    connection.forceConnect()
+
+    connection.sendQuery(query, settings)
+    connection.sendExternalTables()
+
+    val sample = connection.receiveSampleEmptyBlock() // todo Either for exception?
+    val subscriber = new ClickHouseSubscriber[T](connection, sample)
+    publisher.subscribe(subscriber)
+    subscriber
+  }
 
   def execute[T](query: String, settings: ClickhouseProperties)(implicit decoder: Decoder[T]): Iterator[T] = {
-    // todo basic_functionality insert vs select distinction
     connection.forceConnect()
 
     connection.sendQuery(query, settings)
@@ -19,10 +33,12 @@ class Client(val insertBlockSize: Int = DriverProperties.DEFAULT_INSERT_BLOCK_SI
     receiveResultNoProgress(Iterator[T]())
   }
 
+  def disconnect(): Unit = connection.disconnect()
+
   @annotation.tailrec
   final def receiveResultNoProgress[T: Decoder](result: Iterator[T]): Iterator[T] = {
     connection.receivePacket() match {
-      case data: DataPacket[T] @unchecked =>
+      case data: DataPacket =>
         receiveResultNoProgress(result ++ data.block.iterator)
 
       case e: ExceptionPacket =>

@@ -13,7 +13,7 @@ class ClientInfo(val queryKind: Int = ClientInfo.QueryKind.NO_QUERY,
   val initialAddress = "0.0.0.0:0"
   val quotaKey = ""
 
-  def writeItselfTo(out: DataOutputStream, serverRevision: Int): Unit = {
+  def writeTo(out: DataOutputStream, serverRevision: Int): Unit = {
     import Protocol.DataOutputStreamOps
 
     if (serverRevision < ClickhouseVersionSpecific.DBMS_MIN_REVISION_WITH_CLIENT_INFO) ???
@@ -31,11 +31,9 @@ class ClientInfo(val queryKind: Int = ClientInfo.QueryKind.NO_QUERY,
     out.writeAsUInt128(DriverProperties.DBMS_VERSION_MINOR)
     out.writeAsUInt128(DriverProperties.CLIENT_VERSION)
     if (serverRevision >= ClickhouseVersionSpecific.DBMS_MIN_REVISION_WITH_QUOTA_KEY_IN_CLIENT_INFO) {
-      out.writeString(queryKind.toString)
+      out.writeString(quotaKey)
     }
   }
-
-  private def isEmpty = queryKind == ClientInfo.QueryKind.NO_QUERY
 }
 
 object ClientInfo {

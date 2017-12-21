@@ -5,7 +5,7 @@ import ClickhouseVersionSpecific._
 
 sealed trait Packet // todo basic_functionality do we need this hierarchy here?
 
-case class DataPacket[T](block: Block[T]) extends Packet // todo basic_functionality rest fields
+case class DataPacket(block: Block) extends Packet // todo basic_functionality rest fields
 
 case class ExceptionPacket(text: String) extends Exception(text) with Packet
 

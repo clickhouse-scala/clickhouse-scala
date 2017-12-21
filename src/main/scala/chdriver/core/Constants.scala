@@ -3,7 +3,7 @@ package chdriver.core
 object ClickhouseVersionSpecific {
   final val DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES = 50264
   final val DBMS_MIN_REVISION_WITH_TOTAL_ROWS_IN_PROGRESS = 51554
-  final val DBMS_MIN_REVISION_WITH_BLOCK_INFO = 51903
+  final val DBMS_MIN_REVISION_WITH_BLOCK_INFO = 51903 // todo we support only after this
   final val DBMS_MIN_REVISION_WITH_CLIENT_INFO = 54032
   final val DBMS_MIN_REVISION_WITH_SERVER_TIMEZONE = 54058
   final val DBMS_MIN_REVISION_WITH_QUOTA_KEY_IN_CLIENT_INFO = 54060
@@ -51,10 +51,10 @@ object DriverProperties {
   final val DBMS_DEFAULT_TIMEOUT_SEC = 300
   final val DBMS_DEFAULT_SYNC_REQUEST_TIMEOUT_SEC = 5
   final val DEFAULT_COMPRESS_BLOCK_SIZE = 1048576
-  final val DEFAULT_INSERT_BLOCK_SIZE = 1048576
+  final val DEFAULT_INSERT_BLOCK_SIZE = 1048576 // todo tune
   final val DBMS_NAME = "ClickHouse"
   final val CLIENT_NAME = "scala-driver"
-  final val BUFFER_SIZE = 65536 // todo basic_functionality read from config
+  final val INPUT_BUFFER_SIZE = 65536 // todo basic_functionality read from config
 }
 
 object ServerPacketTypes {

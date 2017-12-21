@@ -1,6 +1,8 @@
 package chdriver.core.columns
 
-import java.io.DataInputStream
+import java.io.{DataInputStream, DataOutputStream}
+
+import chdriver.core.Protocol.DataOutputStreamOps
 
 class Int8Column(_data: Array[Byte]) extends Column {
   override type T = Byte
@@ -39,6 +41,14 @@ object Int16Column {
 class Int32Column(_data: Array[Int]) extends Column {
   override type T = Int
   override val data = _data
+
+  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
+    var i = 0
+    while (i < toRow) {
+      out.writeInt32(data(i))
+      i += 1
+    }
+  }
 }
 
 object Int32Column {

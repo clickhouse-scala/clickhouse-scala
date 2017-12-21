@@ -4,38 +4,67 @@ import java.io.{DataInputStream, DataOutputStream}
 
 import chdriver.core.columns.Column
 
-class BlockInfo { // todo C++ what info is encoded in this BlockInfo?
-  var isOverflows: Boolean = false
-  var bucketNum: Int = -1
+case class Block(numberOfRows: Int,
+                 data: Array[Column],
+                 info: BlockInfo,
+                 columnNames: Array[String],
+                 columnTypes: Array[String]) {
 
-  def writeItselfTo(out: DataOutputStream): Unit = ???
+  def iterator[T](implicit decoder: Decoder[T]): Iterator[T] = {
+    if (numberOfRows > 0) {
+      if (!decoder.validate(columnNames, columnTypes)) {
+        throw new DriverException(
+          s"Incompatible runtime data, names=[${columnNames.mkString(",")}], types=[${columnTypes.mkString(",")}]"
+        )
+      }
+      decoder.transpose(numberOfRows, data)
+    } else Iterator.empty
+  }
 
-  @annotation.tailrec // todo basic_functionality copy-pasted, WTF, why while(true) loop; is order fixed?; use companion object here
-  final def readItselfFrom(in: DataInputStream): Unit = {
-    import Protocol.DataInputStreamOps
-    in.readAsUInt128() match {
-      case 0 =>
-      case 1 =>
-        isOverflows = in.readUInt8() > 0
-        readItselfFrom(in)
+  def writeTo(out: DataOutputStream, toRow: Int): Unit = {
+    import chdriver.core.Protocol.DataOutputStreamOps
 
-      case 2 =>
-        bucketNum = in.readInt32()
-        readItselfFrom(in)
+    info.writeTo(out)
+    out.writeAsUInt128(columnTypes.length)
+    out.writeAsUInt128(numberOfRows.min(toRow))
 
-      case _ =>
-        readItselfFrom(in)
+    for (i <- data.indices) {
+      out.writeString(columnNames(i))
+      out.writeString(columnTypes(i))
+      data(i).writeTo(out, toRow)
     }
+
+    out.flush()
   }
 }
 
-case class Block[T](numberOfRows: Int,
-                    data: Array[Column],
-                    info: BlockInfo = new BlockInfo,
-                    columnsWithTypes: Option[Array[(String, String)]])(implicit decoder: Decoder[T]) {
+object Block {
+  def from(in: DataInputStream): Block = {
+    import chdriver.core.Protocol.DataInputStreamOps
 
-  def iterator: Iterator[T] = {
-    if (numberOfRows > 0) decoder.transpose(numberOfRows, data)
-    else Iterator.empty
+    val info = BlockInfo.readItselfFrom(in)
+    val numberOfColumns = in.readAsUInt128()
+    val numberOfRows = in.readAsUInt128()
+
+    // todo constant_memory_optimization preallocate arrays and reuse them
+    val names = new Array[String](numberOfColumns)
+    val types = new Array[String](numberOfColumns)
+    val data = new Array[Column](numberOfColumns)
+
+    for (i <- 0 until numberOfColumns) {
+      val columnName = in.readString()
+      val columnType = in.readString()
+
+      names(i) = columnName
+      types(i) = columnType
+
+      if (numberOfRows > 0) {
+        data(i) = Column.from(in, numberOfRows, columnType)
+      }
+    }
+
+    Block(numberOfRows, data, info, names, types)
   }
+
+  val empty = new Block(0, Array(), new BlockInfo(), Array(), Array())
 }
