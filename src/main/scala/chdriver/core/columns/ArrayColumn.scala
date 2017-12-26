@@ -1,19 +1,63 @@
 package chdriver.core.columns
 
-import java.io.DataInputStream
+import java.io.{DataInputStream, DataOutputStream}
 import java.util.ArrayDeque
 
 import chdriver.core.DriverException
+import chdriver.core.DriverProperties.DEFAULT_INSERT_BLOCK_SIZE
+import chdriver.core.Protocol.DataOutputStreamOps
 
-class ArrayColumn(_data: Array[Any]) extends Column {
+class ArrayColumn private[columns] (_data: Array[Any], val inner: Column) extends Column {
   override type T = Any
   override val data = _data
+
+  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
+    require(data.nonEmpty)
+
+    // `inner` may be an ArrayColumn, and we need innermost Column (that is not an ArrayColumn) to send data
+    val innermost = {
+      var innermost = inner
+      while (innermost.isInstanceOf[ArrayColumn]) innermost = innermost.asInstanceOf[ArrayColumn].inner
+      innermost
+    }
+
+    val q = new ArrayDeque[(Array[_], Int)]()
+    q.addFirst(data -> toRow)
+    var sum = 0
+    var leftOnCurrentLevel = toRow
+    while (!q.isEmpty) {
+      val (data, onThisLevel) = q.removeFirst()
+
+      if (data.nonEmpty && data.head.isInstanceOf[Array[_]]) { // data contains nodes
+        data.take(onThisLevel).foreach { v =>
+          val innerArray = v.asInstanceOf[Array[_]]
+          val size = innerArray.length
+          sum += size
+          out.writeInt64(sum)
+          leftOnCurrentLevel -= 1
+          q.addLast(innerArray -> size)
+        }
+      } else { // data contains leaves
+        System.arraycopy(data, 0, innermost.data, 0, data.length)
+        innermost.writeTo(out, data.length)
+      }
+
+      if (leftOnCurrentLevel == 0) {
+        leftOnCurrentLevel = sum
+        sum = 0
+      }
+    }
+  }
+
+  override def chType: String = super.chType + "(" + inner.chType + ")"
 }
 
 object ArrayColumn {
   import chdriver.core.Protocol.DataInputStreamOps
 
   final val prefix = "Array("
+
+  def apply(inner: Column) = new ArrayColumn(new Array[Any](DEFAULT_INSERT_BLOCK_SIZE), inner)
 
   /*
   for [[42,43]] [[44],[45,46]] :
@@ -37,7 +81,7 @@ object ArrayColumn {
   length of 1.1.1 array + length of 1.2.1 array + length of 1.2.2 array + length of 1.2.3 array + length of 1.2.4 array = 1 + 4 + 1 + 1 = 7
   data = 47 48 49 50 50 51 52 53
    */
-  def readAllFrom(in: DataInputStream, itemsNumber: Int, innerType: String): ArrayColumn = {
+  def from(in: DataInputStream, itemsNumber: Int, innerType: String): ArrayColumn = {
     def fillOffsets(): ArrayDeque[Int] = {
       var level = {
         var current = 0
@@ -100,6 +144,6 @@ object ArrayColumn {
     q.addFirst(data -> innerType)
     fillData(q, offsets)
 
-    new ArrayColumn(data)
+    new ArrayColumn(data, null) // todo might be dangerous
   }
 }

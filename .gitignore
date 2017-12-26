@@ -1,4 +1,5 @@
 src/main/scala/chdriver/core/Main.scala
+.testcontainer*
 
 # Created by https://www.gitignore.io/api/sbt,macos,scala,intellij
 

@@ -3,14 +3,14 @@ package chdriver.core
 import java.io.{DataInputStream, DataOutputStream, EOFException}
 
 /**
-  * ClickHouse uses little-endian byte encoding, and this class provides utilities to work with it.
-  *
-  * Due to "as less external dependencies as possible" goal we decided to copy-paste most of code below from Guava.
-  */
+ * ClickHouse uses little-endian byte encoding, and this class provides utilities to work with it.
+ *
+ * Due to "as less external dependencies as possible" goal we decided to copy-paste most of code below from Guava.
+ */
 object Protocol {
   implicit class DataOutputStreamOps(val out: DataOutputStream) extends AnyVal {
     def writeUInt8(v: Int): Unit = {
-      assert(v >= 0 && v <= DataOutputStreamOps.U_INT8_MAX)
+      require(v >= 0 && v <= DataOutputStreamOps.U_INT8_MAX)
       val unsigned = (v & 0xffL).toByte
       out.writeByte(unsigned)
     }
@@ -19,12 +19,31 @@ object Protocol {
       out.writeByte(if (v) 1 else 0)
     }
 
+    def writeInt16(v: Short): Unit = {
+      out.write(0xFF & v)
+      out.write(0xFF & (v >> 8))
+    }
+
     def writeInt32(v: Int): Unit = {
-      writeIntLeb(v)
+      out.write(0xFF & v)
+      out.write(0xFF & (v >> 8))
+      out.write(0xFF & (v >> 16))
+      out.write(0xFF & (v >> 24))
+    }
+
+    def writeInt64(v: Long): Unit = {
+      out.write(v.toByte)
+      out.write((v >> 8).toByte)
+      out.write((v >> 16).toByte)
+      out.write((v >> 24).toByte)
+      out.write((v >> 32).toByte)
+      out.write((v >> 40).toByte)
+      out.write((v >> 48).toByte)
+      out.write((v >> 56).toByte)
     }
 
     def writeAsUInt128(value: Int): Unit = {
-      assert(value >= 0)
+      require(value >= 0)
       var v = value
       var remaining = v >>> 7
       while (remaining != 0) {
@@ -39,13 +58,6 @@ object Protocol {
       val bytes = v.getBytes
       writeAsUInt128(bytes.length)
       out.write(bytes)
-    }
-
-    private def writeIntLeb(v: Int): Unit = {
-      out.write(0xFF & v)
-      out.write(0xFF & (v >> 8))
-      out.write(0xFF & (v >> 16))
-      out.write(0xFF & (v >> 24))
     }
   }
 

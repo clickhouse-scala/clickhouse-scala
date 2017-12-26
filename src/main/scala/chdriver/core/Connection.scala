@@ -7,7 +7,7 @@ import ClickhouseVersionSpecific._
 import DriverProperties._
 
 final class Connection(val host: String = "localhost",
-                       val port: Int = 9000,
+                       val port: Int = DEFAULT_PORT,
                        val clientName: String = CLIENT_NAME,
                        val database: String = "default",
                        val user: String = "default",
@@ -70,7 +70,7 @@ final class Connection(val host: String = "localhost",
   }
 
   private[chdriver] def sendExternalTables(): Unit = { // todo advanced_functionality mocked
-    sendData(Block.empty, until = 1)
+    sendData(Block.empty, toRow = 1)
   }
 
   private[chdriver] def sendHello(): Unit = {
@@ -109,12 +109,12 @@ final class Connection(val host: String = "localhost",
     }
   }
 
-  private[chdriver] def sendData(block: Block, tableName: String = "", until: Int): Unit = {
+  private[chdriver] def sendData(block: Block, tableName: String = "", toRow: Int): Unit = {
     out.writeAsUInt128(ClientPacketTypes.DATA)
     if (serverRevision >= DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES) {
       out.writeString(tableName)
     }
-    block.writeTo(out, until)
+    block.writeTo(out, toRow)
   }
 
   private def receiveData(): Block = {
@@ -155,9 +155,11 @@ final class Connection(val host: String = "localhost",
   }
 
   @annotation.tailrec
-  private[chdriver] def receiveSampleEmptyBlock(): Block = receivePacket() match {
-    case DataPacket(b) => b
-    case EndOfStreamPacket => receiveSampleEmptyBlock()
-    case p => throw new DriverException(s"Unexpected packet $p. Expected DATA.")
-  }
+  private[chdriver] def receiveSampleEmptyBlock(): Block =
+    receivePacket() match {
+      case DataPacket(b) => b
+      case EndOfStreamPacket => receiveSampleEmptyBlock()
+      case p =>
+        throw new DriverException(s"Unexpected packet $p. Expected DATA.")
+    }
 }

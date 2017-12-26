@@ -2,30 +2,50 @@ package chdriver.core.columns
 
 import java.io.{DataInputStream, DataOutputStream}
 
+import chdriver.core.DriverProperties.DEFAULT_INSERT_BLOCK_SIZE
+import chdriver.core.Protocol.DataInputStreamOps
 import chdriver.core.Protocol.DataOutputStreamOps
 
-class Int8Column(_data: Array[Byte]) extends Column {
+class Int8Column private[columns] (_data: Array[Byte]) extends Column {
   override type T = Byte
   override val data = _data
+
+  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
+    var i = 0
+    while (i < toRow) {
+      out.writeByte(data(i))
+      i += 1
+    }
+  }
 }
 
 object Int8Column {
-  def readAllFrom(in: DataInputStream, itemsNumber: Int): Int8Column = {
+  def apply() = new Int8Column(new Array[Byte](DEFAULT_INSERT_BLOCK_SIZE))
+
+  def from(in: DataInputStream, itemsNumber: Int): Int8Column = {
     val result = new Array[Byte](itemsNumber)
     in.readFully(result)
     new Int8Column(result)
   }
 }
 
-class Int16Column(_data: Array[Short]) extends Column {
+class Int16Column private[columns] (_data: Array[Short]) extends Column {
   override type T = Short
   override val data = _data
+
+  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
+    var i = 0
+    while (i < toRow) {
+      out.writeInt16(data(i))
+      i += 1
+    }
+  }
 }
 
 object Int16Column {
-  def readAllFrom(in: DataInputStream, itemsNumber: Int): Int16Column = {
-    import chdriver.core.Protocol.DataInputStreamOps
+  def apply() = new Int16Column(new Array[Short](DEFAULT_INSERT_BLOCK_SIZE))
 
+  def from(in: DataInputStream, itemsNumber: Int): Int16Column = {
     val data = new Array[Byte](itemsNumber * 2)
     in.readFully(data)
     val result = new Array[Short](itemsNumber)
@@ -38,13 +58,13 @@ object Int16Column {
   }
 }
 
-class Int32Column(_data: Array[Int]) extends Column {
+class Int32Column private[columns] (_data: Array[Int]) extends Column {
   override type T = Int
   override val data = _data
 
   override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
     var i = 0
-    while (i < toRow) {
+    while (i < toRow.min(data.length)) {
       out.writeInt32(data(i))
       i += 1
     }
@@ -52,9 +72,9 @@ class Int32Column(_data: Array[Int]) extends Column {
 }
 
 object Int32Column {
-  def readAllFrom(in: DataInputStream, itemsNumber: Int): Int32Column = {
-    import chdriver.core.Protocol.DataInputStreamOps
+  def apply() = new Int32Column(new Array[Int](DEFAULT_INSERT_BLOCK_SIZE))
 
+  def from(in: DataInputStream, itemsNumber: Int): Int32Column = {
     val data = new Array[Byte](itemsNumber * 4)
     in.readFully(data)
     val result = new Array[Int](itemsNumber)
@@ -67,15 +87,23 @@ object Int32Column {
   }
 }
 
-class Int64Column(_data: Array[Long]) extends Column {
+class Int64Column private[columns] (_data: Array[Long]) extends Column {
   override type T = Long
   override val data = _data
+
+  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
+    var i = 0
+    while (i < toRow) {
+      out.writeInt64(data(i))
+      i += 1
+    }
+  }
 }
 
 object Int64Column {
-  def readAllFrom(in: DataInputStream, itemsNumber: Int): Int64Column = {
-    import chdriver.core.Protocol.DataInputStreamOps
+  def apply() = new Int64Column(new Array[Long](DEFAULT_INSERT_BLOCK_SIZE))
 
+  def from(in: DataInputStream, itemsNumber: Int): Int64Column = {
     val data = new Array[Byte](itemsNumber * 8)
     in.readFully(data)
     val result = new Array[Long](itemsNumber)

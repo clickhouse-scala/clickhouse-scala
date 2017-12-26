@@ -10,7 +10,8 @@ scalaVersion := "2.12.4"
 
 scalacOptions ++= Seq(
   "-deprecation",
-  "-encoding", "utf-8",
+  "-encoding",
+  "utf-8",
   "-explaintypes",
   "-feature",
   "-language:existentials",
@@ -44,10 +45,12 @@ lazy val core = project
   )
   .configs(Benchmark)
   .settings(
-    inConfig(Benchmark)(Defaults.testSettings ++ Seq(
-      testFrameworks := Seq(scalaMeterFramework),
-      testOptions in Benchmark += Tests.Argument("-silent"),
-      parallelExecution in Benchmark := false,
-      logBuffered := false
-    )): _*
+    inConfig(Benchmark)(
+      Defaults.testSettings ++ Seq(
+        testFrameworks := Seq(scalaMeterFramework),
+        testOptions in Benchmark += Tests.Argument("-silent"),
+        parallelExecution in Benchmark := false,
+        logBuffered := false
+      )
+    ): _*
   )

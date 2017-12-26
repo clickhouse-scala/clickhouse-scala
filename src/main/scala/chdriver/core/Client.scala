@@ -7,22 +7,20 @@ class Client(val insertBlockSize: Int = DriverProperties.DEFAULT_INSERT_BLOCK_SI
 
   def insert[T: Encoder](query: String,
                          settings: ClickhouseProperties,
-                         publisher: Publisher[T]): ClickHouseSubscriber[T] = {
+                         publisher: Publisher[T]): ClickHouseBlockingSubscriber[T] = {
     connection.forceConnect()
 
     connection.sendQuery(query, settings)
     connection.sendExternalTables()
 
     val sample = connection.receiveSampleEmptyBlock() // todo Either for exception?
-    val subscriber = new ClickHouseSubscriber[T](connection, sample)
+    val subscriber = new ClickHouseBlockingSubscriber[T](connection, sample)
     publisher.subscribe(subscriber)
     subscriber
   }
 
-
   //todo: Replace result Iterator[T] with Publisher[T]?
   def execute[T](query: String, settings: ClickhouseProperties = new ClickhouseProperties)(implicit decoder: Decoder[T]): Iterator[T] = {
-    // todo basic_functionality insert vs select distinction
     connection.forceConnect()
 
     connection.sendQuery(query, settings)

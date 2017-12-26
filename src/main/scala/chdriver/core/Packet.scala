@@ -3,9 +3,9 @@ package chdriver.core
 import java.io.DataInputStream
 import ClickhouseVersionSpecific._
 
-sealed trait Packet // todo basic_functionality do we need this hierarchy here?
+sealed trait Packet
 
-case class DataPacket(block: Block) extends Packet // todo basic_functionality rest fields
+case class DataPacket(block: Block) extends Packet
 
 case class ExceptionPacket(text: String) extends Exception(text) with Packet
 
