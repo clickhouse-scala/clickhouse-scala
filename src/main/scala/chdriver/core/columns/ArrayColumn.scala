@@ -28,7 +28,7 @@ class ArrayColumn private[columns] (_data: Array[Any], val inner: Column) extend
     while (!q.isEmpty) {
       val (data, onThisLevel) = q.removeFirst()
 
-      if (data.nonEmpty && data.head.isInstanceOf[Array[_]]) { // data contains nodes
+      if (data.isInstanceOf[Array[Array[_]]] || data.nonEmpty && data.head.isInstanceOf[Array[_]]) { // data contains nodes
         data.take(onThisLevel).foreach { v =>
           val innerArray = v.asInstanceOf[Array[_]]
           val size = innerArray.length
