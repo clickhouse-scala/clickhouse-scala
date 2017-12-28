@@ -1,5 +1,6 @@
 package chdriver.core
 
+import chdriver.core.internal._
 import org.reactivestreams.Publisher
 
 class Client(val insertBlockSize: Int = DriverProperties.DEFAULT_INSERT_BLOCK_SIZE,

@@ -1,8 +1,10 @@
-package chdriver.core
+package chdriver.core.internal
 
 import java.io.{DataInputStream, DataOutputStream}
 
 import chdriver.core.columns.Column
+import chdriver.core.internal.columns.Column
+import chdriver.core.{Decoder, DriverException}
 
 case class Block(numberOfRows: Int,
                  data: Array[Column],
@@ -22,7 +24,7 @@ case class Block(numberOfRows: Int,
   }
 
   def writeTo(out: DataOutputStream, toRow: Int): Unit = {
-    import chdriver.core.Protocol.DataOutputStreamOps
+    import Protocol.DataOutputStreamOps
 
     info.writeTo(out)
     out.writeAsUInt128(columnTypes.length)
@@ -40,7 +42,7 @@ case class Block(numberOfRows: Int,
 
 object Block {
   def from(in: DataInputStream): Block = {
-    import chdriver.core.Protocol.DataInputStreamOps
+    import Protocol.DataInputStreamOps
 
     val info = BlockInfo.readItselfFrom(in)
     val numberOfColumns = in.readAsUInt128()

@@ -1,9 +1,9 @@
-package chdriver.core
+package chdriver.core.internal
 
 import java.io.{DataInputStream, DataOutputStream}
 
 class BlockInfo(val isOverflows: Boolean = false, val bucketNum: Int = 0) { // todo C++ what info is encoded in this BlockInfo?
-  import chdriver.core.Protocol.DataOutputStreamOps
+  import Protocol.DataOutputStreamOps
 
   def writeTo(out: DataOutputStream): Unit = {
     out.writeAsUInt128(1)

@@ -1,4 +1,4 @@
-package chdriver.core
+package chdriver.core.internal
 
 import java.io.{DataInputStream, DataOutputStream, EOFException}
 
@@ -62,9 +62,7 @@ object Protocol {
   }
 
   object DataOutputStreamOps {
-    private final val U_INT8_MAX = (1 << 8) - 1
-    private final val U_INT16_MAX = (1 << 16) - 1
-    private final val U_INT32_MAX = (1L << 32) - 1
+    final val U_INT8_MAX = (1 << 8) - 1
   }
 
   implicit class DataInputStreamOps(val in: DataInputStream) extends AnyVal {

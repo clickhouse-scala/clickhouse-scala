@@ -1,12 +1,11 @@
-package chdriver.core
+package chdriver.core.internal
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataInputStream, DataOutputStream}
 
 import org.junit._
 
 class ProtocolTest {
-  import Protocol.DataOutputStreamOps
-  import Protocol.DataInputStreamOps
+  import chdriver.core.internal.Protocol.{DataInputStreamOps, DataOutputStreamOps}
 
   @Test
   def testWriteUInt8(): Unit = {

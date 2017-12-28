@@ -14,7 +14,7 @@ class ClientInfo(val queryKind: Int = ClientInfo.QueryKind.NO_QUERY,
   val quotaKey = ""
 
   def writeTo(out: DataOutputStream, serverRevision: Int): Unit = {
-    import Protocol.DataOutputStreamOps
+    import chdriver.core.internal.Protocol.DataOutputStreamOps
 
     if (serverRevision < ClickhouseVersionSpecific.DBMS_MIN_REVISION_WITH_CLIENT_INFO) ???
 

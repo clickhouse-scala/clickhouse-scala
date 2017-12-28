@@ -1,7 +1,9 @@
 package chdriver.core
 
 import chdriver.core.DriverProperties.DEFAULT_INSERT_BLOCK_SIZE
-import chdriver.core.columns._
+import chdriver.core.columns.Column
+import chdriver.core.internal.Block
+import chdriver.core.internal.columns.{EnumColumn, NullableColumn}
 import org.reactivestreams.{Subscriber, Subscription}
 
 class ClickHouseBlockingSubscriber[T](connection: Connection, sample: Block)(implicit encoder: Encoder[T])
@@ -73,7 +75,7 @@ class ClickHouseBlockingSubscriber[T](connection: Connection, sample: Block)(imp
   }
 
   private def flush(): Unit = {
-    import Protocol.DataOutputStreamOps
+    import chdriver.core.internal.Protocol.DataOutputStreamOps
 
     if (!isFinished // 2.8
         && currentRow > 0) { // not empty state

@@ -1,23 +1,10 @@
 package chdriver.core.columns
 
-import java.io.{DataInputStream, DataOutputStream}
+import java.io.DataInputStream
 
 import chdriver.core.DriverProperties.DEFAULT_INSERT_BLOCK_SIZE
-import chdriver.core.Protocol.DataInputStreamOps
-import chdriver.core.Protocol.DataOutputStreamOps
-
-class Int8Column private[columns] (_data: Array[Byte]) extends Column {
-  override type T = Byte
-  override val data = _data
-
-  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
-    var i = 0
-    while (i < toRow) {
-      out.writeByte(data(i))
-      i += 1
-    }
-  }
-}
+import chdriver.core.internal.Protocol.DataInputStreamOps
+import chdriver.core.internal.columns.{Int16Column, Int32Column, Int64Column, Int8Column}
 
 object Int8Column {
   def apply() = new Int8Column(new Array[Byte](DEFAULT_INSERT_BLOCK_SIZE))
@@ -26,19 +13,6 @@ object Int8Column {
     val result = new Array[Byte](itemsNumber)
     in.readFully(result)
     new Int8Column(result)
-  }
-}
-
-class Int16Column private[columns] (_data: Array[Short]) extends Column {
-  override type T = Short
-  override val data = _data
-
-  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
-    var i = 0
-    while (i < toRow) {
-      out.writeInt16(data(i))
-      i += 1
-    }
   }
 }
 
@@ -58,19 +32,6 @@ object Int16Column {
   }
 }
 
-class Int32Column private[columns] (_data: Array[Int]) extends Column {
-  override type T = Int
-  override val data = _data
-
-  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
-    var i = 0
-    while (i < toRow.min(data.length)) {
-      out.writeInt32(data(i))
-      i += 1
-    }
-  }
-}
-
 object Int32Column {
   def apply() = new Int32Column(new Array[Int](DEFAULT_INSERT_BLOCK_SIZE))
 
@@ -84,19 +45,6 @@ object Int32Column {
       i += 4
     }
     new Int32Column(result)
-  }
-}
-
-class Int64Column private[columns] (_data: Array[Long]) extends Column {
-  override type T = Long
-  override val data = _data
-
-  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
-    var i = 0
-    while (i < toRow) {
-      out.writeInt64(data(i))
-      i += 1
-    }
   }
 }
 

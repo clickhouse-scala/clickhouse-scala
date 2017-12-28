@@ -1,7 +1,8 @@
-package chdriver.core
+package chdriver.core.internal
 
 import java.io.DataInputStream
-import ClickhouseVersionSpecific._
+
+import chdriver.core.ClickhouseVersionSpecific.DBMS_MIN_REVISION_WITH_TOTAL_ROWS_IN_PROGRESS
 
 sealed trait Packet
 
@@ -11,7 +12,7 @@ case class ExceptionPacket(text: String) extends Exception(text) with Packet
 
 object ExceptionPacket {
   def from(in: DataInputStream): ExceptionPacket = {
-    import Protocol.DataInputStreamOps
+    import chdriver.core.internal.Protocol.DataInputStreamOps
     val code = in.readInt32()
     val name = in.readString()
     val message = in.readString()
@@ -44,15 +45,8 @@ case class ProfileInfoPacket(rows: Int,
 
 object ProfileInfoPacket {
   def from(in: DataInputStream): ProfileInfoPacket = {
-    import Protocol.DataInputStreamOps
-    ProfileInfoPacket(
-      in.readAsUInt128(),
-      in.readAsUInt128(),
-      in.readAsUInt128(),
-      in.readUInt8() > 0,
-      in.readAsUInt128(),
-      in.readUInt8() > 0
-    )
+    import chdriver.core.internal.Protocol.DataInputStreamOps
+    ProfileInfoPacket(in.readAsUInt128(), in.readAsUInt128(), in.readAsUInt128(), in.readUInt8() > 0, in.readAsUInt128(), in.readUInt8() > 0)
   }
 }
 
@@ -61,7 +55,7 @@ case class ProgressPacket(newRows: Int, newBytes: Int, newTotalRows: Int) extend
 
 case object ProgressPacket {
   def from(in: DataInputStream, serverRevision: Int): ProgressPacket = {
-    import Protocol.DataInputStreamOps
+    import chdriver.core.internal.Protocol.DataInputStreamOps
     ProgressPacket(
       in.readAsUInt128(),
       in.readAsUInt128(),

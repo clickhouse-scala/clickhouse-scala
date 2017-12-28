@@ -5,6 +5,7 @@ import java.net.Socket
 
 import ClickhouseVersionSpecific._
 import DriverProperties._
+import chdriver.core.internal._
 
 final class Connection(val host: String = "localhost",
                        val port: Int = DEFAULT_PORT,
@@ -13,7 +14,7 @@ final class Connection(val host: String = "localhost",
                        val user: String = "default",
                        val password: String = "",
 ) {
-  import Protocol._
+  import chdriver.core.internal.Protocol._
   var serverRevision: Int = _
   private var _serverTZ: String = _
 
@@ -159,7 +160,6 @@ final class Connection(val host: String = "localhost",
     receivePacket() match {
       case DataPacket(b) => b
       case EndOfStreamPacket => receiveSampleEmptyBlock()
-      case p =>
-        throw new DriverException(s"Unexpected packet $p. Expected DATA.")
+      case p => throw new DriverException(s"Unexpected packet $p. Expected DATA.")
     }
 }

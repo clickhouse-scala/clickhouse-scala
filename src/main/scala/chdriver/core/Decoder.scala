@@ -2,6 +2,10 @@ package chdriver.core
 
 import chdriver.core.columns.Column
 
+/**
+ * Typeclass for all "decodable" things.
+ * If you want to do any action (except inserts), then you must have `Encoder` for that type.
+ */
 trait Decoder[T] {
 
   /**

@@ -1,23 +1,8 @@
 package chdriver.core.columns
 
-import java.io.{DataInputStream, DataOutputStream}
+import java.io.DataInputStream
 
-class NullableColumn private[columns] (val nulls: Array[Byte], val inner: Column) extends Column {
-  override type T = inner.T
-  override val data: Array[inner.T] = inner.data
-
-  override def writeTo(out: DataOutputStream, toRow: Int): Unit = {
-    var i = 0
-    while (i < toRow) {
-      out.writeBoolean(nulls(i) == 0)
-      i += 1
-    }
-
-    inner.writeTo(out, toRow)
-  }
-
-  override def chType: String = super.chType + "(" + inner.chType + ")"
-}
+import chdriver.core.internal.columns.{Column, NullableColumn}
 
 object NullableColumn {
   def apply(inner: Column) = new NullableColumn(Array.fill[Byte](inner.data.length)(1), inner)
