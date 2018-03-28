@@ -4,7 +4,7 @@ lazy val Benchmark = config("bench") extend Test
 
 name := "clickhouse-scala-core"
 
-version := "0.0.1"
+version := "0.0.2"
 
 scalaVersion := "2.12.4"
 
